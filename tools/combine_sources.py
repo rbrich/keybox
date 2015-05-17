@@ -4,6 +4,7 @@
 # Copyright 2015 Radek Brich
 
 import sys
+import os
 import re
 import argparse
 
@@ -111,27 +112,38 @@ def combine(source_filename: str, package_name: str, include_sources: list,
 def main():
     ap = argparse.ArgumentParser(description="combine sources into single file")
     ap.add_argument('-i', dest="input_file", default='pwlockr.py',
-                    help="input file name")
-    ap.add_argument('-o', dest="output_file", default='pwlockr-static.py',
+                    help="input file name (main Python script)")
+    ap.add_argument('-o', dest="output_file",
                     help="output file name")
+    ap.add_argument('-l', dest="list_sources", action='store_true',
+                    help="just list sources to be combined")
+    ap.add_argument('-q', dest="quiet", action='store_true',
+                    help="enable quiet output")
     ap.add_argument('--package', default='pwlockr',
                     help="python package to be combined")
     args = ap.parse_args()
 
+    f_info = open(os.devnull, 'w') if args.quiet else sys.stdout
+
+    print("Analyzing %r..." % args.input_file, file=f_info)
     include_sources = []
-    print("Analyzing %r..." % args.input_file)
     analyze(args.input_file, args.package, include_sources)
-    print("Sources to include:", '\n'.join(include_sources), sep='\n')
-    empty_lines_in_row = 0
-    with open(args.output_file, 'w') as fo:
-        for line in combine(args.input_file, args.package, include_sources):
-            if not line.strip():
-                empty_lines_in_row += 1
-            else:
-                empty_lines_in_row = 0
-            if empty_lines_in_row < 3:
-                fo.write(line)
-    print("Written to %r." % args.output_file)
+
+    if args.list_sources:
+        print("Sources to include:", file=f_info)
+        print('\n'.join(include_sources))
+
+    if args.output_file:
+        empty_lines_in_row = 0
+        with open(args.output_file, 'w') as fo:
+            for line in combine(args.input_file, args.package, include_sources):
+                if not line.strip():
+                    empty_lines_in_row += 1
+                else:
+                    empty_lines_in_row = 0
+                if empty_lines_in_row < 3:
+                    fo.write(line)
+        print("Written to %r." % args.output_file, file=f_info)
 
 
 if __name__ == '__main__':

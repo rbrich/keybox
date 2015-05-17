@@ -2,8 +2,6 @@
 # (shell-like user interface)
 #
 
-from pwlockr.ui import BaseUI, DEFAULT_FILENAME
-from pwlockr.pwgen import pwgen
 import readline
 import textwrap
 
@@ -12,6 +10,9 @@ try:
 except ImportError:
     # Python 3.2 and older (pip3 install funcsigs)
     from funcsigs import signature
+
+from pwlockr.ui import BaseUI, DEFAULT_FILENAME
+from pwlockr.pwgen import pwgen
 
 
 class ShellUI(BaseUI):

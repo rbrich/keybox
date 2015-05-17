@@ -38,7 +38,6 @@ pygments_style = 'sphinx'
 
 # -- Options for HTML output ----------------------------------------------
 
-#html_theme = 'nature_fulltoc'
 html_theme = 'classic_globaltoc'
 html_theme_path = ['_themes']
 html_theme_options = {
@@ -52,15 +51,15 @@ htmlhelp_basename = 'pwlockrdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-'papersize': 'a4paper',
+    # The paper size ('letterpaper' or 'a4paper').
+    'papersize': 'a4paper',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'pwlockr.tex', 'Password locker', 'Radek Brich', 'manual'),
+    ('index', 'pwlockr.tex', 'Password locker', 'Radek Brich', 'manual'),
 ]
 
 # If false, no module index is generated.
@@ -75,4 +74,3 @@ man_pages = [
     ('index', 'pwlockr', 'Password locker', ['Radek Brich'], 1),
     ('format', 'pwlockr', 'Password locker file format', ['Radek Brich'], 5),
 ]
-

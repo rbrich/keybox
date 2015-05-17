@@ -3,12 +3,13 @@ DIST=dist
 COVERAGE=coverage
 COMBINE=tools/combine_sources.py
 
-.PHONY: static33 static32 static27 test coverage clean
+.PHONY: static33 static32 static27 zipapp33 test coverage clean
 .DEFAULT: static33
 
 static33: $(DIST)/pwlockr-static33.py
 static32: $(DIST)/pwlockr-static32.py
 static27: $(DIST)/pwlockr-static27.py
+zipapp33: $(DIST)/pwlockr-py33.pyz
 
 $(DIST)/pwlockr-static33.py: pwlockr.py
 	mkdir -p $(DIST)
@@ -37,6 +38,15 @@ $(DIST)/pwlockr-static27.py: pwlockr.py
 	sed -i $@ -r -e 's,(#!/usr/bin/env python)3,\1,'
 	chmod +x $@
 
+$(DIST)/pwlockr-py33.pyz: pwlockr.py
+	mkdir -p $(DIST)
+	zip $@.tmp $< pwlockr/__init__.py
+	printf "@ $<\n@=__main__.py\n" | zipnote -w $@.tmp
+	$(COMBINE) -i $< -l -q | zip -@ $@.tmp
+	echo '#!/usr/bin/env python3' | cat - $@.tmp > $@
+	rm $@.tmp
+	chmod +x $@
+
 test:
 	python3 -m unittest discover -s tests
 
@@ -47,3 +57,4 @@ coverage:
 
 clean:
 	rm -f $(DIST)/pwlockr-*.py
+	rm -f $(DIST)/pwlockr-*.pyz

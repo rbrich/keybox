@@ -2,13 +2,14 @@
 # (password locker file manager)
 #
 
-from pwlockr.gpg import encrypt, decrypt
-from pwlockr.record import Record, COLUMNS
-from pwlockr.fileformat import format_file, parse_file
 import base64
 import time
 import os
 import itertools
+
+from pwlockr.gpg import encrypt, decrypt
+from pwlockr.record import Record, COLUMNS
+from pwlockr.fileformat import format_file, parse_file
 
 
 class LockerRecord:
@@ -28,7 +29,7 @@ class LockerRecord:
     def __init__(self, locker, record: Record):
         self._locker = locker
         self._record = record
-        if 'mtime' not in self._record:
+        if not record['mtime']:
             self.touch()
         for key, value in record.items():
             self._locker.update_width(key, value)
@@ -58,9 +59,6 @@ class LockerRecord:
             value = self._locker.decrypt_password(value)
         return value
 
-    def get(self, key, default=None):
-        return self[key] if key in self._record else default
-
     def touch(self):
         mtime = time.strftime('%F %T')
         self._record['mtime'] = mtime
@@ -70,20 +68,6 @@ class LockerRecord:
     @property
     def wrapped_record(self):
         return self._record
-
-
-class LockerIterator:
-
-    def __init__(self, locker, records: list):
-        self._locker = locker
-        self._iter = iter(records)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        record = next(self._iter)
-        return LockerRecord(self._locker, record)
 
 
 class Locker:
@@ -109,8 +93,10 @@ class Locker:
         self._modified = False
 
     def __iter__(self):
-        """Return read-only view into records."""
-        return LockerIterator(self, self._records)
+        return (LockerRecord(self, record) for record in self._records)
+
+    def __getitem__(self, item):
+        return LockerRecord(self, self._records[item])
 
     def __len__(self):
         return len(self._records)
@@ -134,7 +120,7 @@ class Locker:
         return self._column_widths[column]
 
     def get_tags(self, start_text=None):
-        start_text = start_text.lower() or ''
+        start_text = (start_text or '').lower()
         all_tags = set(itertools.chain.from_iterable(
             record['tags'].split() for record in self._records))
         return [t for t in sorted(all_tags) if t.startswith(start_text)]
@@ -180,7 +166,6 @@ class Locker:
         self._records.append(record)
         locker_record = LockerRecord(self, record)
         locker_record['password'] = password
-        locker_record.touch()
         return locker_record
 
     def delete_record(self, record: LockerRecord):

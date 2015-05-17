@@ -26,8 +26,7 @@ class LockerBatch(Locker):
         imported = 0
         for record in records:
             if self._check_import(record):
-                record['password'] = self.encrypt_password(record['password'])
-                self._records.append(record)
+                self.add_record(**record)
                 imported += 1
         return len(records), imported
 

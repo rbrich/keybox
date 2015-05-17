@@ -2,14 +2,14 @@
 # (open/close, basic commands)
 #
 
-from pwlockr.stringutil import contains
-from pwlockr.locker import Locker
-
 from getpass import getpass
 from functools import wraps
 from collections import Counter
 import itertools
 import os
+
+from pwlockr.stringutil import contains
+from pwlockr.locker import Locker
 
 DEFAULT_FILENAME = 'pwlockr.gpg'
 

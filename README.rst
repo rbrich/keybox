@@ -75,3 +75,10 @@ Additional requirement for Python 3.2 is ``funcsigs`` package.
 It can be installed from pypy (``pip3 install funcsigs``).
 Call ``make static32`` to also embed funcsigs source into pwlockr
 distributable script (funcsigs package must be installed prior to that).
+
+Nicer alternative for static script is zipapp format. [#zipapp]_
+
+Call ``make zipapp33`` to create ``pwlockr-py33.pyz`` executable
+in ``dist`` directory.
+
+.. [#zipapp] https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format

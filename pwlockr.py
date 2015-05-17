@@ -2,14 +2,14 @@
 # pwlockr.py - Secure locker for your passwords.
 # Copyright 2015 Radek Brich
 
+from getpass import getpass
+import argparse
+
 from pwlockr.memlock import memlock
 from pwlockr.ui import DEFAULT_FILENAME
 from pwlockr.shell import ShellUI
 from pwlockr.batch import LockerBatch
 from pwlockr.pwgen import pwgen, NUM_WORDS, NUM_SPECIAL, MIN_LENGTH
-
-from getpass import getpass
-import argparse
 
 
 def cmd_shell(args):
@@ -53,13 +53,13 @@ def main():
                     help="shell: start shell (default)\n"
                          "gen: generate random password\n"
                          "import: import formatted records from stdin "
-                         "or another file (see --import-file)\n"
+                         "or another file (-i <file>)\n"
                          "export: decrypt and export content of locker file "
                          "to stdout")
 
     ap.add_argument('-f', dest='locker_file', default=DEFAULT_FILENAME,
                     help="password locker file (default: %(default)s)")
-    ap.add_argument('-i', dest='import_file', type=str, default=None,
+    ap.add_argument('-i', dest='import_file', type=str, default=0,
                     help="import: use this file instead of stdin")
     ap.add_argument('--decrypt-passwords', action='store_true',
                     help="export: decrypt all passwords")

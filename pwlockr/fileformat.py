@@ -2,8 +2,9 @@
 # (locker file format)
 #
 
-from pwlockr.record import Record, COLUMNS
 import io
+
+from pwlockr.record import Record, COLUMNS
 
 
 def format_header(columns=COLUMNS):

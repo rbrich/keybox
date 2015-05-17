@@ -24,7 +24,7 @@ Import
 Batch import of passwords is supported via command line.
 
 - Format the data into tab-delimited file with header.
-- Header should contain subset or all of :data:`pwlockr.COLUMNS`.
+- Header should contain subset or all of :data:`pwlockr.record.COLUMNS`.
 - Rest of lines should contain records with data according to header.
 
 Example import file::
@@ -39,9 +39,9 @@ and import the file:
 .. code-block:: sh
 
     $ # Import file
-    $ ./pwlockr.py --import import.recs
+    $ ./pwlockr.py import -i import.recs
     $ # Import output from other program
-    $ cat import.recs | ./pwlockr.py --import -
+    $ cat import.recs | ./pwlockr.py import
 
 How to create locker file using standard tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,7 +65,7 @@ Use export function to decrypt all data including passwords:
 
 .. code-block:: sh
 
-    $ ./pwlockr.py --export
+    $ ./pwlockr.py export
 
 This will print exported data to stdout, which can be directed to other
 programs. This is useful for conversion to other formats.

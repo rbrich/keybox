@@ -1,5 +1,4 @@
 import unittest
-import time
 import os
 
 from pwlockr.gpg import encrypt, decrypt
@@ -89,18 +88,6 @@ class TestRecord(unittest.TestCase):
         self.assertNotEqual(record0, record1)
 
 
-class TestLockerRecord(unittest.TestCase):
-
-    def test_mtime(self):
-        locker = Locker('/tmp/x')
-        record = LockerRecord(locker, Record())
-        self.assertIsNotNone(record['mtime'])
-        mtime_before = record['mtime']
-        time.sleep(1)
-        record['site'] = 'Site'
-        self.assertNotEqual(mtime_before, record['mtime'])
-
-
 class TestFormat(unittest.TestCase):
 
     def setUp(self):
@@ -123,6 +110,25 @@ class TestFormat(unittest.TestCase):
         self.assertEqual(records, parsed_records)
 
 
+class TestLockerRecord(unittest.TestCase):
+
+    def test_mtime(self):
+        locker = Locker('/tmp/x')
+        # Make empty record
+        record = Record()
+        record_proxy = LockerRecord(locker, record)
+        # New records are automatically touched
+        self.assertTrue(record['mtime'])
+        # Cannot write mtime through proxy
+        with self.assertRaises(Exception):
+            record_proxy['mtime'] = "sometime"
+        # But still can through dumb Record
+        record['mtime'] = "sometime"
+        # Update something, check that mtime also updates
+        record_proxy['site'] = 'Site'
+        self.assertNotEqual("sometime", record['mtime'])
+
+
 class TestLocker(unittest.TestCase):
 
     def setUp(self):
@@ -143,19 +149,25 @@ class TestLocker(unittest.TestCase):
         for i in range(128):
             record = locker.add_record(**self._sample)
             record['site'] += str(i)
+        locker[20]['tags'] = 'email'
+        locker[30]['tags'] = 'test it'
         locker.write()
         del locker
         # Read
         locker = Locker(self._filename, self._passphrase)
         locker.read()
-        record = list(locker)[10]
+        record = locker[10]
         self.assertTrue(record['mtime'])
         self.assertEqual(record['site'], self._sample['site'] + '10')
+        # Check rest of fields
         for key in set(self._sample.keys()) - {'site'}:
             self.assertEqual(record[key], self._sample[key])
         # Actual password is encrypted
         self.assertNotEqual(record._record['password'],
                             self._sample['password'])
+        # Tags are parsed into sorted list
+        self.assertEqual(locker.get_tags(), ['email', 'it', 'test', 'web'])
+        # Clean up
         os.unlink(self._filename)
 
 
@@ -182,6 +194,8 @@ class TestUI(unittest.TestCase):
             ("Example  jackinthebox  http://example.com/", None),
             # count
             ("1", None),
+            # write
+            ("Changes saved to %s." % self._filename, None),
             # select
             ("Example  jackoutofbox  http://example.com/", None),
             # print
@@ -209,12 +223,15 @@ class TestUI(unittest.TestCase):
         ui.cmd_add()
         ui.cmd_list()
         ui.cmd_count()
+        ui.cmd_write()
         ui.cmd_modify('user', 'jackoutofbox')
         ui.cmd_select('Example')
         ui.cmd_print()
         ui.cmd_reset()
         ui.cmd_print()
         ui.cmd_delete()
+        # Clean up
+        os.unlink(self._filename)
 
     def _check_script(self, text, *_):
         expected, answer = self._script.pop(0)
@@ -222,4 +239,3 @@ class TestUI(unittest.TestCase):
             raise AssertionError("No output expected, got %r." % text)
         self.assertEqual(str(text)[:40], expected[:40])
         return answer
-
