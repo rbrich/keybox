@@ -19,7 +19,7 @@ class Record(dict):
         return "{}({})".format(self.__class__.__name__, ', '.join(a))
 
     def __setitem__(self, key, value):
-        super().__setitem__(key, value)
+        super().__setitem__(key, value or '')
         if key not in self._columns:
             self._columns.append(key)
 

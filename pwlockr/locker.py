@@ -129,14 +129,14 @@ class Locker:
         """Read password locker file from disk."""
         with open(self._filename, 'rb') as f:
             data = f.read()
-        data = decrypt(data, self._passphrase)
+        data = decrypt(data, self._passphrase).decode('utf-8')
         self._records, self._columns = parse_file(data)
         self._modified = False
         self.recompute_widths()
 
     def write(self):
         """Write password locker file to disk, overwriting existing content."""
-        data = format_file(self._records, self._columns)
+        data = format_file(self._records, self._columns).encode('utf-8')
         data = encrypt(data, self._passphrase)
         # Write to temporary file
         tmp_filename = self._filename + '.tmp'
@@ -163,10 +163,10 @@ class Locker:
         """
         password = kwargs.pop('password', '')
         record = Record(columns=self._columns, **kwargs)
+        if password:
+            record['password'] = self.encrypt_password(password)
         self._records.append(record)
-        locker_record = LockerRecord(self, record)
-        locker_record['password'] = password
-        return locker_record
+        return LockerRecord(self, record)
 
     def delete_record(self, record: LockerRecord):
         """Delete record previously obtained by other methods."""

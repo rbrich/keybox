@@ -40,7 +40,7 @@ def cmd_export(args):
     passphrase = getpass('Passphrase:')
     locker = LockerBatch(args.locker_file, passphrase)
     locker.read()
-    locker.export()
+    locker.export_file(args.export_file)
 
 
 def main():
@@ -59,10 +59,10 @@ def main():
 
     ap.add_argument('-f', dest='locker_file', default=DEFAULT_FILENAME,
                     help="password locker file (default: %(default)s)")
-    ap.add_argument('-i', dest='import_file', type=str, default=0,
+    ap.add_argument('-i', dest='import_file', type=str, default='-',
                     help="import: use this file instead of stdin")
-    ap.add_argument('--decrypt-passwords', action='store_true',
-                    help="export: decrypt all passwords")
+    ap.add_argument('-o', dest='export_file', type=str, default='-',
+                    help="export: use this file instead of stdout")
 
     # pwgen args
     ap.add_argument('-w', dest='words', type=int, default=NUM_WORDS,

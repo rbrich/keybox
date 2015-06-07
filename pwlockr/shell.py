@@ -4,6 +4,7 @@
 
 import readline
 import textwrap
+import signal
 
 try:
     from inspect import signature
@@ -13,6 +14,8 @@ except ImportError:
 
 from pwlockr.ui import BaseUI, DEFAULT_FILENAME
 from pwlockr.pwgen import pwgen
+
+SHELL_TIMEOUT_SECS = 60 * 60  # 1 hour
 
 
 class ShellUI(BaseUI):
@@ -32,6 +35,8 @@ class ShellUI(BaseUI):
         self._quit = False
         self._fill_commands()
         self._complete_candidates = []
+        signal.signal(signal.SIGHUP, self._sighup_handler)
+        signal.signal(signal.SIGALRM, self._sigalrm_handler)
 
     def start(self):
         """Start the shell. Returns when done."""
@@ -39,8 +44,11 @@ class ShellUI(BaseUI):
             return
         try:
             self.mainloop()
-        except (KeyboardInterrupt, EOFError):  # Ctrl-C, Ctrl-D
-            print('quit')
+        except (KeyboardInterrupt, EOFError):
+            # Ctrl-C, Ctrl-D
+            print("quit")
+        except TimeoutError:
+            print("quit\nTimeout after %s seconds." % SHELL_TIMEOUT_SECS)
         finally:
             self.close()
 
@@ -55,7 +63,9 @@ class ShellUI(BaseUI):
             readline.parse_and_bind('tab: complete')
             readline.set_completer(self._complete)
             readline.set_completer_delims(' ')
+            signal.alarm(SHELL_TIMEOUT_SECS)
             cmdline = input("> ")
+            signal.alarm(0)
             if not cmdline:
                 continue
             command, *args = cmdline.split(None, 1)
@@ -244,3 +254,9 @@ class ShellUI(BaseUI):
                     docshort.strip())
         if full and docrest:
             self._print('\n', textwrap.dedent(docrest).strip(), sep='')
+
+    def _sighup_handler(self, signum, frame):
+        self.close()
+
+    def _sigalrm_handler(self, signum, frame):
+        raise TimeoutError

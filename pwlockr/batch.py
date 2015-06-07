@@ -2,24 +2,29 @@
 # (import / export)
 #
 
-from pwlockr.locker import Locker, LockerRecord
-from pwlockr.fileformat import format_header, format_record, parse_file
+import sys
+
+from pwlockr.locker import Locker
+from pwlockr.fileformat import write_file, read_file
 
 
 class LockerBatch(Locker):
 
     """Extended password locker with import/export functionality."""
 
-    def export(self):
-        columns = self._columns
-        print(format_header(columns), end='')
-        for record in self._records:
-            record_proxy = LockerRecord(self, record)
-            print(format_record(record_proxy, columns), end='')
+    def export_file(self, filename):
+        if filename == '-':
+            write_file(sys.stdout, self, self._columns)
+        else:
+            with open(filename, 'w', encoding='utf-8') as f:
+                write_file(f, self, self._columns)
 
     def import_file(self, filename):
-        with open(filename, 'rb') as f:
-            records, columns = parse_file(f)
+        if filename == '-':
+            records, columns = read_file(sys.stdin)
+        else:
+            with open(filename, 'r', encoding='utf-8') as f:
+                records, columns = read_file(f)
         assert set(columns).issubset(self._columns),\
             'Unexpected column in header: %s'\
             % (set(columns) - set(self._columns))
