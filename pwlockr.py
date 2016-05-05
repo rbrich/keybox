@@ -4,6 +4,8 @@
 
 from getpass import getpass
 import argparse
+import fcntl
+import os
 
 from pwlockr.memlock import memlock
 from pwlockr.ui import DEFAULT_FILENAME
@@ -34,8 +36,11 @@ def cmd_import(args):
     print("%d records imported (%d duplicates)."
           % (num_ok, num_total - num_ok))
     if num_ok > 0:
-        with open(args.locker_file, 'wb') as f:
+        filename_tmp = args.locker_file + '.tmp'
+        with open(filename_tmp, 'wb') as f:
+            fcntl.lockf(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             locker.write(f)
+            os.rename(filename_tmp, args.locker_file)
 
 
 def cmd_export(args):
