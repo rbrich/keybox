@@ -117,7 +117,7 @@ class BaseUI:
         """
         record = {
             'user':     user or self._input('User:'.ljust(10)),
-            'password': password or self._input('Password: '),
+            'password': password or self._input('Password:'.ljust(10)),
             'site':     self._input('Site:'.ljust(10)),
             'url':      self._input('URL:'.ljust(10)),
             'tags':     self._input('Tags:'.ljust(10)),

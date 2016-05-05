@@ -161,16 +161,23 @@ class ShellUI(BaseUI):
 
         """
         if len(completed_parts) == 2:
-            try:
-                nwords = int(text)
-            except ValueError:
-                nwords = 2
-            return [pwgen(nwords)]
+            return [self._complete_password(text, 0)]
         return []
 
+    def _complete_password(self, text, state):
+        try:
+            nwords = int(text)
+        except ValueError:
+            nwords = 2
+        return pwgen(nwords) if state == 0 else None
+
     def _complete_url(self, text, state):
-        candidates = ['http://', 'https://']
-        candidates = [c for c in candidates if c.startswith(text)]
+        if not len(text):
+            candidates = ['http://']
+        elif all(c.isalpha() for c in text):
+            candidates = [text + '://']
+        else:
+            candidates = []
         try:
             return candidates[state]
         except IndexError:
@@ -184,41 +191,30 @@ class ShellUI(BaseUI):
             return None
 
     def _input(self, prompt=None):
-        """Readline input without completion or history."""
+        """Override input function to add some convenience."""
+        # Special handling for cmd_add fields
+        if prompt.startswith('Password:'):
+            return self._input_readline(prompt, self._complete_password)
         if prompt.startswith('URL:'):
-            # Special completion for URL
-            return self._input_url(prompt)
+            return self._input_readline(prompt, self._complete_url, '',
+                                        ['https://', 'http://'])
         if prompt.startswith('Tags:'):
-            # Special completion for tags
-            return self._input_tags(prompt)
-        # Disable completion
-        readline.parse_and_bind('tab:')
-        # Save readline history
-        history = self._dump_readline_history()
-        # Input
-        text = super()._input(prompt)
-        # Restore history
-        self._restore_readline_history(history)
-        return text
+            return self._input_readline(prompt, self._complete_tags, ' ')
+        # No completion or history for anything else
+        return self._input_readline(prompt)
 
-    def _input_url(self, prompt):
-        readline.parse_and_bind('tab: complete')
-        readline.set_completer(self._complete_url)
-        readline.set_completer_delims('')
-        history = self._dump_readline_history()
-        self._restore_readline_history(['https://', 'http://'])
-        text = super()._input(prompt)
+    def _input_readline(self, prompt, completer=None, delims='', history=()):
+        """Input with completion and history."""
+        if completer is not None:
+            readline.parse_and_bind('tab: complete')
+            readline.set_completer(completer)
+            readline.set_completer_delims(delims)
+        else:
+            readline.parse_and_bind('tab:')
+        saved_history = self._dump_readline_history()
         self._restore_readline_history(history)
-        return text
-
-    def _input_tags(self, prompt):
-        readline.parse_and_bind('tab: complete')
-        readline.set_completer(self._complete_tags)
-        readline.set_completer_delims(' ')
-        history = self._dump_readline_history()
-        self._restore_readline_history([])
         text = super()._input(prompt)
-        self._restore_readline_history(history)
+        self._restore_readline_history(saved_history)
         return text
 
     def _dump_readline_history(self, clear=True) -> list:
