@@ -35,6 +35,7 @@ class ShellUI(BaseUI):
         self._quit = False
         self._fill_commands()
         self._complete_candidates = []
+        self._readline_history = []
         signal.signal(signal.SIGHUP, self._sighup_handler)
         signal.signal(signal.SIGALRM, self._sigalrm_handler)
 
@@ -63,9 +64,11 @@ class ShellUI(BaseUI):
             readline.parse_and_bind('tab: complete')
             readline.set_completer(self._complete)
             readline.set_completer_delims(' ')
+            self._restore_readline_history(self._readline_history)
             signal.alarm(SHELL_TIMEOUT_SECS)
             cmdline = input("> ")
             signal.alarm(0)
+            self._readline_history = self._dump_readline_history()
             if not cmdline:
                 continue
             command, *args = cmdline.split(None, 1)
@@ -211,19 +214,15 @@ class ShellUI(BaseUI):
             readline.set_completer_delims(delims)
         else:
             readline.parse_and_bind('tab:')
-        saved_history = self._dump_readline_history()
         self._restore_readline_history(history)
-        text = super()._input(prompt)
-        self._restore_readline_history(saved_history)
+        text = input(prompt)
         return text
 
-    def _dump_readline_history(self, clear=True) -> list:
+    def _dump_readline_history(self) -> list:
         """Extract and clear current readline history."""
         # noinspection PyArgumentList
         history = [readline.get_history_item(i+1)
                    for i in range(readline.get_current_history_length())]
-        if clear:
-            readline.clear_history()
         return history
 
     def _restore_readline_history(self, history: list):
