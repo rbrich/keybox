@@ -5,7 +5,10 @@ Password Locker (pwlockr)
 Introduction
 ------------
 
-Pwlockr is a password management program.
+Pwlockr is a program built around simple file format. The file is encrypted
+using strong encryption. Unlike most password managers, this is completely
+offline. All your secrets stay safe in local file. Nothing is sent anywhere,
+unless you explicitly set up network synchronization using some other tool.
 
 Features:
 
