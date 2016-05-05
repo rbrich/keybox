@@ -38,9 +38,9 @@ class ShellUI(BaseUI):
         signal.signal(signal.SIGHUP, self._sighup_handler)
         signal.signal(signal.SIGALRM, self._sigalrm_handler)
 
-    def start(self):
+    def start(self, readonly=False):
         """Start the shell. Returns when done."""
-        if not self.open():
+        if not self.open(readonly):
             return
         try:
             self.mainloop()

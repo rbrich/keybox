@@ -14,7 +14,7 @@ from pwlockr.pwgen import pwgen, NUM_WORDS, NUM_SPECIAL, MIN_LENGTH
 
 def cmd_shell(args):
     shell = ShellUI(args.locker_file)
-    shell.start()
+    shell.start(args.readonly)
 
 
 def cmd_gen(args):
@@ -27,19 +27,22 @@ def cmd_gen(args):
 
 def cmd_import(args):
     passphrase = getpass('Passphrase:')
-    locker = LockerBatch(args.locker_file, passphrase)
-    locker.read()
+    locker = LockerBatch(passphrase)
+    with open(args.locker_file, 'rb') as f:
+        locker.read(f)
     num_total, num_ok = locker.import_file(args.import_file)
     print("%d records imported (%d duplicates)."
           % (num_ok, num_total - num_ok))
     if num_ok > 0:
-        locker.write()
+        with open(args.locker_file, 'wb') as f:
+            locker.write(f)
 
 
 def cmd_export(args):
     passphrase = getpass('Passphrase:')
-    locker = LockerBatch(args.locker_file, passphrase)
-    locker.read()
+    locker = LockerBatch(passphrase)
+    with open(args.locker_file, 'rb') as f:
+        locker.read(f)
     locker.export_file(args.export_file)
 
 
@@ -59,6 +62,8 @@ def main():
 
     ap.add_argument('-f', dest='locker_file', default=DEFAULT_FILENAME,
                     help="password locker file (default: %(default)s)")
+    ap.add_argument('-r', dest="readonly", action="store_true",
+                    help="open locker in read-only mode")
     ap.add_argument('-i', dest='import_file', type=str, default='-',
                     help="import: use this file instead of stdin")
     ap.add_argument('-o', dest='export_file', type=str, default='-',

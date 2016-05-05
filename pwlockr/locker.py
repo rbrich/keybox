@@ -78,18 +78,18 @@ class Locker:
 
     """
 
-    def __init__(self, filename, passphrase=None):
-        """Select working `file` and `passphrase`.
+    def __init__(self, passphrase=None):
+        """Initialize the locker, using `passphrase`.
 
         In next step, call `read` to read existing file
         or call `write` to create new empty file.
 
         """
-        self._filename = filename
         self._records = []
         self._columns = COLUMNS
         self._column_widths = {}
         self._passphrase = passphrase
+        #: Are there any unwritten changes?
         self._modified = False
 
     def __iter__(self):
@@ -125,25 +125,19 @@ class Locker:
             record['tags'].split() for record in self._records))
         return [t for t in sorted(all_tags) if t.startswith(start_text)]
 
-    def read(self):
-        """Read password locker file from disk."""
-        with open(self._filename, 'rb') as f:
-            data = f.read()
+    def read(self, file):
+        """Read password locker records from `file`."""
+        data = file.read()
         data = decrypt(data, self._passphrase).decode('utf-8')
         self._records, self._columns = parse_file(data)
         self._modified = False
         self.recompute_widths()
 
-    def write(self):
-        """Write password locker file to disk, overwriting existing content."""
+    def write(self, file):
+        """Write password locker records to `file`."""
         data = format_file(self._records, self._columns).encode('utf-8')
         data = encrypt(data, self._passphrase)
-        # Write to temporary file
-        tmp_filename = self._filename + '.tmp'
-        with open(tmp_filename, 'wb') as f:
-            f.write(data)
-        # Move temporary file, potentially rewriting existing file
-        os.rename(tmp_filename, self._filename)
+        file.write(data)
         self._modified = False
         for record in self._records:
             record.modified = False

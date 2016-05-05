@@ -7,6 +7,7 @@ from functools import wraps
 from collections import Counter
 import itertools
 import os
+import fcntl
 
 from pwlockr.stringutil import contains
 from pwlockr.locker import Locker
@@ -14,14 +15,25 @@ from pwlockr.locker import Locker
 DEFAULT_FILENAME = 'pwlockr.gpg'
 
 
+def with_write_access(func):
+    """Write access required. Decorator for UI commands."""
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self.readonly():
+            func(self, *args, **kwargs)
+        else:
+            self._print("Read-only mode.")
+    return wrapper
+
+
 def with_selected_record(func):
-    """Decorator. Require selected record for command."""
+    """Require selected record. Decorator for UI commands."""
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self._selected_record:
             func(self, *args, **kwargs)
         else:
-            print("No record selected. See `help select`.")
+            self._print("No record selected. See `help select`.")
     return wrapper
 
 
@@ -41,25 +53,48 @@ class BaseUI:
 
     def __init__(self, filename=DEFAULT_FILENAME):
         self._filename = filename
-        self._locker = Locker(filename)
+        #: We will write to temporary file to avoid data loss when write fails
+        #: When write succeeds, the temp file will be moved to target file name
+        self._filename_tmp = filename + '.tmp'
+        self._wfile = None
+        self._locker = Locker()
         self._selected_record = None  # Record
 
-    def open(self):
+    def open(self, readonly=False):
         self._print("Opening file %r... " % self._filename)
         if os.path.exists(self._filename):
-            return self._open_existing()
+            ok = self._open_existing()
+            if ok and (readonly or not self._open_tmp()):
+                self._print("Open in read-only mode.")
         else:
-            return self._create_new()
+            if readonly:
+                self._print("Error: File not found.")
+                return False
+            ok = self._create_new()
+            if ok and not self._open_tmp():
+                return False
+        return ok
 
     def close(self):
-        self.cmd_write()
+        if self.readonly():
+            assert not self._locker.modified(), "Modified in read-only mode"
+            return
+        if self._locker.modified():
+            self._write()
+        else:
+            self._close_tmp()
 
+    def readonly(self):
+        return self._wfile is None
+
+    @with_write_access
     def cmd_write(self):
         """Write changes to locker file."""
         if self._locker.modified():
-            self._locker.write()
-            self._print("Changes saved to %s." % self._filename)
+            self._write()
+            self._open_tmp()
 
+    @with_write_access
     def cmd_reset(self):
         """Change master passphrase."""
         passphrase = self._input_pass('Enter current passphrase: ')
@@ -73,6 +108,7 @@ class BaseUI:
             return
         self._locker.set_passphrase(passphrase)
 
+    @with_write_access
     def cmd_add(self, user=None, password=None):
         """Add new record.
 
@@ -190,6 +226,7 @@ class BaseUI:
         """Print password from selected record."""
         self._print(self._selected_record['password'])
 
+    @with_write_access
     @with_selected_record
     def cmd_modify(self, column, value=None):
         """Modify selected record.
@@ -203,6 +240,7 @@ class BaseUI:
         column = candidates[0]
         self._selected_record[column] = value
 
+    @with_write_access
     @with_selected_record
     def cmd_delete(self):
         """Delete selected record."""
@@ -222,14 +260,15 @@ class BaseUI:
             return False
         try:
             self._locker.set_passphrase(passphrase)
-            self._locker.read()
+            with open(self._filename, 'rb') as f:
+                self._locker.read(f)
         except Exception as e:
             self._print(e)
             return False
         return True
 
     def _create_new(self):
-        ans = self._input("Not found. Create? [y/n] ")
+        ans = self._input("File not found. Create new? [y/n] ")
         if ans.lower()[0] == 'y':
             passphrase = self._input_pass("Enter passphrase: ")
             passphrase_check = self._input_pass("Re-enter passphrase: ")
@@ -240,6 +279,38 @@ class BaseUI:
         else:  # ans != 'y'
             return False
         return True
+
+    def _open_tmp(self):
+        """Prepare tmp file for writing and lock it"""
+        try:
+            self._wfile = open(self._filename_tmp, 'wb')
+        except OSError as e:
+            self._print("Warning: Can't open file for writing: %s" % e)
+            return False
+        try:
+            fcntl.lockf(self._wfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            self._close_tmp()
+            self._print("Warning: File locked by another process.")
+            return False
+
+    def _close_tmp(self, unlink=True):
+        """Close tmp file (this also releases the lock)"""
+        self._wfile.close()
+        self._wfile = None
+        if unlink:
+            os.unlink(self._filename_tmp)
+
+    def _write(self):
+        # Write records to tmp file
+        self._locker.write(self._wfile)
+        # Then rename it to target name, potentially overwriting old version
+        os.rename(self._filename_tmp, self._filename)
+        # Close tmp file, which will also release the lock
+        # It's important to do this after rename to avoid race condition
+        self._close_tmp(unlink=False)
+        self._print("Changes saved to %s." % self._filename)
 
     def _parse_filter(self, filter_expr, default_column) -> tuple:
         """Parse filter expression, check column name.

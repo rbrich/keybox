@@ -145,17 +145,19 @@ class TestLocker(unittest.TestCase):
 
     def test_write_read(self):
         # Write
-        locker = Locker(self._filename, self._passphrase)
+        locker = Locker(self._passphrase)
         for i in range(128):
             record = locker.add_record(**self._sample)
             record['site'] += str(i)
         locker[20]['tags'] = 'email'
         locker[30]['tags'] = 'test it'
-        locker.write()
+        with open(self._filename, 'wb') as f:
+            locker.write(f)
         del locker
         # Read
-        locker = Locker(self._filename, self._passphrase)
-        locker.read()
+        locker = Locker(self._passphrase)
+        with open(self._filename, 'rb') as f:
+            locker.read(f)
         record = locker[10]
         self.assertTrue(record['mtime'])
         self.assertEqual(record['site'], self._sample['site'] + '10')
@@ -180,7 +182,7 @@ class TestUI(unittest.TestCase):
         self._script = [
             # open
             ("Opening file %r... " % self._filename, None),
-            ("Not found. Create? [y/n] ", 'y'),
+            ("File not found. Create new? [y/n] ", 'y'),
             ("Enter passphrase: ", self._passphrase),
             ("Re-enter passphrase: ", self._passphrase),
             # add
@@ -209,6 +211,8 @@ class TestUI(unittest.TestCase):
             # delete
             ("Delete selected record? This cannot be taken back! [y/n] ", "y"),
             ("Record deleted.", None),
+            # close
+            ("Changes saved to /tmp/test_pwlockr.gpg.", None),
             (0, 0),
         ]
 
@@ -230,6 +234,7 @@ class TestUI(unittest.TestCase):
         ui.cmd_reset()
         ui.cmd_print()
         ui.cmd_delete()
+        ui.close()
         # Clean up
         os.unlink(self._filename)
 
