@@ -1,51 +1,32 @@
 DIST=dist
+TMPDIR=$(DIST)/zipapp.tmp
 3TO2=3to2
 COVERAGE=coverage
 COMBINE=tools/combine_sources.py
 
-.PHONY: static33 static32 static27 zipapp33 test coverage clean
-.DEFAULT: static33
+.PHONY: zipapp33 zipapp32 test coverage clean
+.DEFAULT: zipapp33
 
-static33: $(DIST)/pwlockr-static33.py
-static32: $(DIST)/pwlockr-static32.py
-static27: $(DIST)/pwlockr-static27.py
-zipapp33: $(DIST)/pwlockr-py33.pyz
+zipapp33: $(DIST)/pwlockr-zipapp33.pyz
+zipapp32: $(DIST)/pwlockr-zipapp32.pyz
 
-$(DIST)/pwlockr-static33.py: pwlockr.py
-	mkdir -p $(DIST)
-	$(COMBINE) -i $< -o $@
-	chmod +x $@
+$(DIST)/pwlockr-zipapp33.pyz: pwlockr pwlockr.py
+	rm -rf $(TMPDIR)
+	mkdir -p $(TMPDIR)/pwlockr
+	cp pwlockr/*.py $(TMPDIR)/pwlockr
+	cp pwlockr.py $(TMPDIR)/__main__.py
+	python3 -m zipapp $(TMPDIR) -p '/usr/bin/env python3' -o $@
 
-$(DIST)/pwlockr-static32.py: pwlockr.py
-	mkdir -p $(DIST)
-	$(COMBINE) -i $< -o $@.tmp
-	sed -i $@.tmp -r -e '/^try:/N;N;N;N;s/try:\s*from inspect .*(from funcsigs .*)/\1/'
-	$(COMBINE) -i $@.tmp -o $@ --package funcsigs
-	sed -i $@ -r -e 's/^from __future__ .*//'
-	rm $@.tmp
-	chmod +x $@
-
-# EXPERIMENTAL conversion for Python 2.7
-# There are still many unresolved unicode errors
-$(DIST)/pwlockr-static27.py: pwlockr.py
-	mkdir -p $(DIST)
-	$(COMBINE) -i $< -o $@
-	$(3TO2) -fprintfunction -nw --no-diffs $@
-	$(3TO2) -fall -xprint -nw --no-diffs $@
-	sed -i $@ -r -e 's/import math/\0\nmath.log2 = lambda x: math.log(x, 2)/'
-	sed -i $@ -e '/cmdline.split(None, 1))/N;s/\(cmdline.split(None, 1))\)\n/\1; /'
-	sed -i $@ -e "s/\.decode()/\.decode('utf8')/"
-	sed -i $@ -r -e 's,(#!/usr/bin/env python)3,\1,'
-	chmod +x $@
-
-$(DIST)/pwlockr-py33.pyz: pwlockr.py
-	mkdir -p $(DIST)
-	zip $@.tmp $< pwlockr/__init__.py
-	printf "@ $<\n@=__main__.py\n" | zipnote -w $@.tmp
-	$(COMBINE) -i $< -l -q | zip -@ $@.tmp
-	echo '#!/usr/bin/env python3' | cat - $@.tmp > $@
-	rm $@.tmp
-	chmod +x $@
+$(DIST)/pwlockr-zipapp32.pyz: pwlockr pwlockr.py
+	rm -rf $(TMPDIR)
+	mkdir -p $(TMPDIR)/pwlockr
+	cp pwlockr/*.py $(TMPDIR)/pwlockr
+	cp pwlockr.py $(TMPDIR)/__main__.py
+	pip3 download --isolated -q --no-deps -d $(TMPDIR) funcsigs
+	unzip $(TMPDIR)/funcsigs-*.whl -d $(TMPDIR)
+	rm $(TMPDIR)/funcsigs-*.whl
+	rm -rf $(TMPDIR)/funcsigs-*-info/
+	python3 -m zipapp $(TMPDIR) -p '/usr/bin/env python3' -o $@
 
 test:
 	python3 -m unittest discover -s tests
@@ -56,5 +37,4 @@ coverage:
 	$(COVERAGE) report
 
 clean:
-	rm -f $(DIST)/pwlockr-*.py
-	rm -f $(DIST)/pwlockr-*.pyz
+	rm -rf $(DIST)

@@ -15,6 +15,7 @@ from pwlockr import pwgen
 
 
 def cmd_shell(args):
+    memlock()
     shell = ShellUI(args.locker_file)
     shell.start(args.readonly)
 
@@ -95,6 +96,5 @@ def main():
     globals()['cmd_' + args.command](args)
 
 
-if __name__ == '__main__':
-    memlock()
+if __name__ == u'__main__':
     main()
