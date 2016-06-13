@@ -6,32 +6,30 @@ from pwlockr.record import Record, COLUMNS
 from pwlockr.locker import Locker, LockerRecord
 from pwlockr.fileformat import format_file, parse_file
 from pwlockr.ui import BaseUI
-from pwlockr.pwgen import load_wordlist, pwgen
+from pwlockr import pwgen
 
 
-class TestPwGen(unittest.TestCase):
+class TestPasswordGenerator(unittest.TestCase):
 
     def test_wordlist(self):
-        words = load_wordlist()
+        words = pwgen.load_wordlist()
         for word in words:
             self.assertIsInstance(word, str)
             self.assertTrue(len(word) > 0)
 
-    def test_pwgen(self):
-        pw = pwgen(num_words=0, min_length=100)
+    def test_generate_passphrase(self):
+        pw = pwgen.generate_passphrase()
         self.assertIsInstance(pw, str)
-        self.assertTrue(len(pw) == 100)
-        # It should be save to expect all the symbol groups to be present
+        self.assertTrue(len(pw) >= pwgen.MIN_LENGTH)
         self.assertTrue(any(c.islower() for c in pw), "At least one lowercase")
         self.assertTrue(any(c.isupper() for c in pw), "At least one uppercase")
         self.assertTrue(any(c.isdigit() for c in pw), "At least one digit")
         self.assertTrue(any(c.isprintable() and not c.isalnum() for c in pw),
                         "At least one punctuation character.")
         self.assertFalse(any(c.isspace() for c in pw), "No whitespace")
-        pw = pwgen(num_words=4, min_length=50, sep=' ')
-        self.assertTrue(len(pw) >= 50)
-        self.assertTrue(any(c.isprintable() for c in pw))
-        self.assertTrue(pw.count(' ') == 3, "Separator count")
+        pw = pwgen.generate_password(length=50)
+        self.assertTrue(len(pw) == 50)
+        self.assertTrue(all(c.isprintable() for c in pw))
 
 
 class TestCrypt(unittest.TestCase):

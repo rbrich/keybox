@@ -11,7 +11,7 @@ from pwlockr.memlock import memlock
 from pwlockr.ui import DEFAULT_FILENAME
 from pwlockr.shell import ShellUI
 from pwlockr.batch import LockerBatch
-from pwlockr.pwgen import pwgen, NUM_WORDS, NUM_SPECIAL, MIN_LENGTH
+from pwlockr import pwgen
 
 
 def cmd_shell(args):
@@ -20,11 +20,11 @@ def cmd_shell(args):
 
 
 def cmd_gen(args):
-    entropy = []
-    print(pwgen(args.words, args.special, args.length, entropy=entropy))
-    print("%7.2f bits of entropy (based on algorithm)\n"
-          "%7.2f bits of rough entropy (based on symbol groups)"
-          % tuple(entropy))
+    for _ in range(10):
+        print(pwgen.generate_password(args.length),
+              pwgen.generate_passphrase(args.words, args.length,
+                                        args.upper, args.digits, args.special),
+              sep='   ')
 
 
 def cmd_import(args):
@@ -75,14 +75,20 @@ def main():
                     help="export: use this file instead of stdout")
 
     # pwgen args
-    ap.add_argument('-w', dest='words', type=int, default=NUM_WORDS,
+    ap.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
+                    help="gen: minimal length of password "
+                         "(default: %(default)s)")
+    ap.add_argument('-w', dest='words', type=int, default=pwgen.NUM_WORDS,
                     help="gen: number of words to concatenate "
                          "(default: %(default)s)")
-    ap.add_argument('-s', dest='special', type=int, default=NUM_SPECIAL,
-                    help="gen: number of uppercase, digit and punctuation "
-                         "symbols to add (default: %(default)s)")
-    ap.add_argument('-l', dest='length', type=int, default=MIN_LENGTH,
-                    help="gen: minimal length of password "
+    ap.add_argument('-u', dest='upper', type=int, default=pwgen.NUM_UPPER,
+                    help="gen: number of letters to make uppercase "
+                         "(default: %(default)s)")
+    ap.add_argument('-d', dest='digits', type=int, default=pwgen.NUM_DIGITS,
+                    help="gen: number of digits to add "
+                         "(default: %(default)s)")
+    ap.add_argument('-s', dest='special', type=int, default=pwgen.NUM_SPECIAL,
+                    help="gen: number of special symbols to add "
                          "(default: %(default)s)")
 
     args = ap.parse_args()

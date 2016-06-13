@@ -5,6 +5,7 @@
 import readline
 import textwrap
 import signal
+import sys
 
 try:
     from inspect import signature
@@ -13,9 +14,175 @@ except ImportError:
     from funcsigs import signature
 
 from pwlockr.ui import BaseUI, DEFAULT_FILENAME
-from pwlockr.pwgen import pwgen
+from pwlockr import pwgen
 
 SHELL_TIMEOUT_SECS = 60 * 60  # 1 hour
+
+
+def not_implemented(f):
+    """Decorator for unimplemented methods.
+
+    The function is effectively removed (set to None).
+
+    """
+    return
+
+
+class BaseCompleter:
+
+    def __init__(self, history: list=None, delims=' '):
+        self._prompt = ''
+        self._history = history or []
+        self._delims = delims
+
+    def input(self, prompt):
+        """Input with completion and history."""
+        self._prompt = prompt
+        self._reset()
+        self._load_history()
+        value = input(prompt)
+        self._save_history()
+        return value
+
+    def _reset(self):
+        if self._complete:
+            readline.parse_and_bind('tab: complete')
+            readline.set_completer(self._complete)
+            readline.set_completer_delims(self._delims)
+        else:
+            readline.parse_and_bind('tab:')
+            readline.set_completer()
+        if self._display_matches:
+            readline.set_completion_display_matches_hook(self._display_matches)
+        else:
+            readline.set_completion_display_matches_hook()
+
+    @not_implemented
+    def _complete(self, text, state):
+        pass
+
+    @not_implemented
+    def _display_matches(self, substitution, matches, longest_match_length):
+        pass
+
+    def _load_history(self):
+        """Restore readline history to last state."""
+        readline.clear_history()
+        # noinspection PyTypeChecker
+        for item in self._history:
+            readline.add_history(item)
+
+    def _save_history(self):
+        """Save and clear current readline history."""
+        # noinspection PyArgumentList
+        self._history = [readline.get_history_item(i + 1)
+                         for i in range(readline.get_current_history_length())]
+
+
+class ShellCompleter(BaseCompleter):
+
+    def __init__(self, locker, filter_commands):
+        BaseCompleter.__init__(self)
+        self._locker = locker
+        self._filter_commands = filter_commands
+        self._candidates = []
+
+    def _complete(self, text, state):
+        """Tab completion for readline."""
+        if state == 0:
+            line = readline.get_line_buffer()
+            begin = readline.get_begidx()
+            end = readline.get_endidx()
+            to_complete = line[begin:end]
+            assert to_complete == text
+            completed_parts = line[:begin].split()
+
+            if begin == 0:
+                self._candidates = self._filter_commands(text)
+            else:
+                cmd = completed_parts[0]
+                cmd = self._filter_commands(cmd)[0]
+                func = getattr(self, '_complete_' + cmd, lambda p, t: [])
+                self._candidates = func(completed_parts, text)
+        try:
+            return self._candidates[state]
+        except IndexError:
+            return None
+
+    def _complete_modify(self, completed_parts, text):
+        """Complete cmd_modify args."""
+        if len(completed_parts) == 1:
+            return self._locker.get_columns(text)
+        else:
+            return []
+
+
+class PasswordCompleter(BaseCompleter):
+
+    def __init__(self):
+        BaseCompleter.__init__(self, delims='')
+        self._passwords = []
+        self._candidates = []
+
+    def _complete(self, text, state):
+        if state == 0:
+            if text:
+                if len(text) == 1 and '0' <= text <= '9':
+                    self._candidates = [self._passwords[int(text)]]
+                elif len(text) == 1 and 'a' <= text <= 'j':
+                    self._candidates = [self._passwords[ord(text) - ord('a') + 10]]
+                else:
+                    self._candidates = []
+            else:
+                self._passwords = [pwgen.generate_password() for _ in range(10)] + \
+                                  [pwgen.generate_passphrase() for _ in range(10)]
+                self._candidates = ["%s: %s" % (n if n < 10 else chr(ord('a') + n - 10), p)
+                                    for n, p in enumerate(self._candidates)]
+        try:
+            return self._candidates[state]
+        except IndexError:
+            return None
+
+    def _display_matches(self, substitution, matches, longest_match_length):
+        print()
+        half = len(matches) // 2
+        for match1, match2 in zip(matches[:half], matches[half:]):
+            print(match1, ' ', match2)
+        print(self._prompt, readline.get_line_buffer(), sep='', end='')
+        sys.stdout.flush()
+
+
+class UrlCompleter(BaseCompleter):
+
+    def __init__(self):
+        BaseCompleter.__init__(self,
+                               delims='', history=['https://', 'http://'])
+
+    def _complete(self, text, state):
+        if not len(text):
+            candidates = ['http://']
+        elif all(c.isalpha() for c in text):
+            candidates = [text + '://']
+        else:
+            candidates = []
+        try:
+            return candidates[state]
+        except IndexError:
+            return None
+
+
+class TagsCompleter(BaseCompleter):
+
+    def __init__(self, locker):
+        BaseCompleter.__init__(self)
+        self._locker = locker
+
+    def _complete(self, text, state):
+        candidates = self._locker.get_tags(text)
+        try:
+            return candidates[state]
+        except IndexError:
+            return None
 
 
 class ShellUI(BaseUI):
@@ -32,12 +199,16 @@ class ShellUI(BaseUI):
         super().__init__(filename)
         self._commands = []
         self._command_map = {}  # name: (func, params)
-        self._quit = False
         self._fill_commands()
-        self._complete_candidates = []
-        self._readline_history = []
-        signal.signal(signal.SIGHUP, self._sighup_handler)
-        signal.signal(signal.SIGALRM, self._sigalrm_handler)
+        self._quit = False
+
+        def sighup_handler(signum, frame):
+            self.close()
+        signal.signal(signal.SIGHUP, sighup_handler)
+
+        def sigalrm_handler(signum, frame):
+            raise TimeoutError
+        signal.signal(signal.SIGALRM, sigalrm_handler)
 
     def start(self, readonly=False):
         """Start the shell. Returns when done."""
@@ -60,15 +231,11 @@ class ShellUI(BaseUI):
         See `start`.
 
         """
+        completer = ShellCompleter(self._locker, self._filter_commands)
         while not self._quit:
-            readline.parse_and_bind('tab: complete')
-            readline.set_completer(self._complete)
-            readline.set_completer_delims(' ')
-            self._restore_readline_history(self._readline_history)
             signal.alarm(SHELL_TIMEOUT_SECS)
-            cmdline = input("> ")
+            cmdline = completer.input("> ")
             signal.alarm(0)
-            self._readline_history = self._dump_readline_history()
             if not cmdline:
                 continue
             command, *args = cmdline.split(None, 1)
@@ -127,109 +294,18 @@ class ShellUI(BaseUI):
     def _filter_commands(self, start_text):
         return [name for name in self._commands if name.startswith(start_text)]
 
-    def _complete(self, text, state):
-        """Tab completion for readline."""
-        if state == 0:
-            line = readline.get_line_buffer()
-            begin = readline.get_begidx()
-            end = readline.get_endidx()
-            to_complete = line[begin:end]
-            assert to_complete == text
-            completed_parts = line[:begin].split()
-
-            if begin == 0:
-                self._complete_candidates = self._filter_commands(text)
-            else:
-                cmd = completed_parts[0]
-                cmd = self._filter_commands(cmd)[0]
-                func = getattr(self, '_complete_' + cmd, lambda p, t: [])
-                self._complete_candidates = func(completed_parts, text)
-        try:
-            return self._complete_candidates[state]
-        except IndexError:
-            return None
-
-    def _complete_modify(self, completed_parts, text):
-        """Complete cmd_modify args."""
-        if len(completed_parts) == 1:
-            return self._locker.get_columns(text)
-        else:
-            return []
-
-    def _complete_add(self, completed_parts, text):
-        """Complete cmd_add args.
-
-        Generate new random password on each <tab> press.
-        Typing a number and <tab> generates password that number of words long.
-
-        """
-        if len(completed_parts) == 2:
-            return [self._complete_password(text, 0)]
-        return []
-
-    def _complete_password(self, text, state):
-        try:
-            nwords = int(text)
-        except ValueError:
-            nwords = 2
-        return pwgen(nwords) if state == 0 else None
-
-    def _complete_url(self, text, state):
-        if not len(text):
-            candidates = ['http://']
-        elif all(c.isalpha() for c in text):
-            candidates = [text + '://']
-        else:
-            candidates = []
-        try:
-            return candidates[state]
-        except IndexError:
-            return None
-
-    def _complete_tags(self, text, state):
-        candidates = self._locker.get_tags(text)
-        try:
-            return candidates[state]
-        except IndexError:
-            return None
-
     def _input(self, prompt=None):
         """Override input function to add some convenience."""
         # Special handling for cmd_add fields
         if prompt.startswith('Password:'):
-            return self._input_readline(prompt, self._complete_password)
-        if prompt.startswith('URL:'):
-            return self._input_readline(prompt, self._complete_url, '',
-                                        ['https://', 'http://'])
-        if prompt.startswith('Tags:'):
-            return self._input_readline(prompt, self._complete_tags, ' ')
-        # No completion or history for anything else
-        return self._input_readline(prompt)
-
-    def _input_readline(self, prompt, completer=None, delims='', history=()):
-        """Input with completion and history."""
-        if completer is not None:
-            readline.parse_and_bind('tab: complete')
-            readline.set_completer(completer)
-            readline.set_completer_delims(delims)
+            completer = PasswordCompleter()
+        elif prompt.startswith('URL:'):
+            completer = UrlCompleter()
+        elif prompt.startswith('Tags:'):
+            completer = TagsCompleter(self._locker)
         else:
-            readline.parse_and_bind('tab:')
-        self._restore_readline_history(history)
-        text = input(prompt)
-        return text
-
-    def _dump_readline_history(self) -> list:
-        """Extract and clear current readline history."""
-        # noinspection PyArgumentList
-        history = [readline.get_history_item(i+1)
-                   for i in range(readline.get_current_history_length())]
-        return history
-
-    def _restore_readline_history(self, history: list):
-        """Restore readline history from a list."""
-        readline.clear_history()
-        for item in history:
-            readline.add_history(item)
+            completer = BaseCompleter()
+        return completer.input(prompt)
 
     def _print_help(self, command, full=False):
         """Print help text for a `command` as found in docstring.
@@ -249,9 +325,3 @@ class ShellUI(BaseUI):
                     docshort.strip())
         if full and docrest:
             self._print('\n', textwrap.dedent(docrest).strip(), sep='')
-
-    def _sighup_handler(self, signum, frame):
-        self.close()
-
-    def _sigalrm_handler(self, signum, frame):
-        raise TimeoutError
