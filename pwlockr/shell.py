@@ -231,7 +231,7 @@ class ShellUI(BaseUI):
             signal.alarm(SHELL_TIMEOUT_SECS)
             cmdline = completer.input("> ")
             signal.alarm(0)
-            if not cmdline:
+            if not cmdline.strip():
                 continue
             command, *args = cmdline.split(None, 1)
             func = None
