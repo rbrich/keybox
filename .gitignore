@@ -1,6 +1,8 @@
 __pycache__
-pwlockr.gpg
+build/
 dist/
+pwlockr.egg-info/
 docs/_build/
-.coverage
 htmlcov/
+.coverage
+pwlockr.gpg

@@ -1,2 +1,2 @@
-__all__ = ('batch', 'fileformat', 'gpg', 'locker', 'memlock', 'pwgen',
+__all__ = ('batch', 'fileformat', 'gpg', 'locker', 'main', 'memlock', 'pwgen',
            'record', 'shell', 'stringutil', 'ui')
