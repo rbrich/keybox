@@ -1,7 +1,7 @@
 # Record
 #
 
-#: Initial columns. This is used only for new locker files.
+#: Initial columns. This is used only for new keybox files.
 COLUMNS = ('site', 'user', 'url', 'tags', 'mtime', 'note', 'password')
 
 

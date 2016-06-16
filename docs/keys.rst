@@ -25,10 +25,10 @@ keys.gpg module
     :undoc-members:
     :show-inheritance:
 
-keys.locker module
+keys.keybox module
 ------------------
 
-.. automodule:: keys.locker
+.. automodule:: keys.keybox
     :members:
     :undoc-members:
     :show-inheritance:

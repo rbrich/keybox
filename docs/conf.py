@@ -59,7 +59,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'keys.tex', 'Password locker', 'Radek Brich', 'manual'),
+    ('index', 'keys.tex', 'Keybox manager', 'Radek Brich', 'manual'),
 ]
 
 # If false, no module index is generated.
@@ -71,6 +71,6 @@ latex_domain_indices = False
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'keys', 'Password locker', ['Radek Brich'], 1),
-    ('format', 'keys', 'Password locker file format', ['Radek Brich'], 5),
+    ('index', 'keys', 'Keybox manager', ['Radek Brich'], 1),
+    ('format', 'keys', 'Keybox file format', ['Radek Brich'], 5),
 ]

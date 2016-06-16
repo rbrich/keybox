@@ -3,7 +3,7 @@ import os
 
 from keys.gpg import encrypt, decrypt
 from keys.record import Record, COLUMNS
-from keys.locker import Locker, LockerRecord
+from keys.keybox import Keybox, KeyboxRecord
 from keys.fileformat import format_file, parse_file
 from keys.ui import BaseUI
 from keys import pwgen
@@ -108,13 +108,13 @@ class TestFormat(unittest.TestCase):
         self.assertEqual(records, parsed_records)
 
 
-class TestLockerRecord(unittest.TestCase):
+class TestKeyboxRecord(unittest.TestCase):
 
     def test_mtime(self):
-        locker = Locker('/tmp/x')
+        keybox = Keybox('/tmp/x')
         # Make empty record
         record = Record()
-        record_proxy = LockerRecord(locker, record)
+        record_proxy = KeyboxRecord(keybox, record)
         # New records are automatically touched
         self.assertTrue(record['mtime'])
         # Cannot write mtime through proxy
@@ -127,7 +127,7 @@ class TestLockerRecord(unittest.TestCase):
         self.assertNotEqual("sometime", record['mtime'])
 
 
-class TestLocker(unittest.TestCase):
+class TestKeybox(unittest.TestCase):
 
     def setUp(self):
         self._sample = {
@@ -143,20 +143,20 @@ class TestLocker(unittest.TestCase):
 
     def test_write_read(self):
         # Write
-        locker = Locker(self._passphrase)
+        keybox = Keybox(self._passphrase)
         for i in range(128):
-            record = locker.add_record(**self._sample)
+            record = keybox.add_record(**self._sample)
             record['site'] += str(i)
-        locker[20]['tags'] = 'email'
-        locker[30]['tags'] = 'test it'
+        keybox[20]['tags'] = 'email'
+        keybox[30]['tags'] = 'test it'
         with open(self._filename, 'wb') as f:
-            locker.write(f)
-        del locker
+            keybox.write(f)
+        del keybox
         # Read
-        locker = Locker(self._passphrase)
+        keybox = Keybox(self._passphrase)
         with open(self._filename, 'rb') as f:
-            locker.read(f)
-        record = locker[10]
+            keybox.read(f)
+        record = keybox[10]
         self.assertTrue(record['mtime'])
         self.assertEqual(record['site'], self._sample['site'] + '10')
         # Check rest of fields
@@ -166,7 +166,7 @@ class TestLocker(unittest.TestCase):
         self.assertNotEqual(record._record['password'],
                             self._sample['password'])
         # Tags are parsed into sorted list
-        self.assertEqual(locker.get_tags(), ['email', 'it', 'test', 'web'])
+        self.assertEqual(keybox.get_tags(), ['email', 'it', 'test', 'web'])
         # Clean up
         os.unlink(self._filename)
 

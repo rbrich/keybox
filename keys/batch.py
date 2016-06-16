@@ -1,16 +1,16 @@
-# LockerBatch
+# KeyboxBatch
 # (import / export)
 #
 
 import sys
 
-from keys.locker import Locker
+from keys.keybox import Keybox
 from keys.fileformat import write_file, read_file
 
 
-class LockerBatch(Locker):
+class KeyboxBatch(Keybox):
 
-    """Extended password locker with import/export functionality."""
+    """Extended keybox with import/export functionality."""
 
     def export_file(self, filename):
         if filename == '-':

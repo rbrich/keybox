@@ -1,5 +1,5 @@
 # format, parse
-# (locker file format)
+# (keybox file format)
 #
 
 import io

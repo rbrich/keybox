@@ -73,9 +73,9 @@ class BaseCompleter:
 
 class ShellCompleter(BaseCompleter):
 
-    def __init__(self, locker, filter_commands):
+    def __init__(self, keybox, filter_commands):
         BaseCompleter.__init__(self)
-        self._locker = locker
+        self._keybox = keybox
         self._filter_commands = filter_commands
         self._candidates = []
 
@@ -104,21 +104,21 @@ class ShellCompleter(BaseCompleter):
     def _complete_modify(self, completed_parts, text):
         """Complete cmd_modify args."""
         if len(completed_parts) == 1:
-            return self._locker.get_columns(text)
+            return self._keybox.get_columns(text)
         else:
             return []
 
 
 class UserCompleter(BaseCompleter):
 
-    def __init__(self, locker):
+    def __init__(self, keybox):
         BaseCompleter.__init__(self)
-        self._locker = locker
+        self._keybox = keybox
         self._candidates = []
 
     def _complete(self, text, state):
         if state == 0:
-            self._candidates = self._locker.get_column_values('user', text)
+            self._candidates = self._keybox.get_column_values('user', text)
         try:
             return self._candidates[state]
         except IndexError:
@@ -184,14 +184,14 @@ class UrlCompleter(BaseCompleter):
 
 class TagsCompleter(BaseCompleter):
 
-    def __init__(self, locker):
+    def __init__(self, keybox):
         BaseCompleter.__init__(self)
-        self._locker = locker
+        self._keybox = keybox
         self._candidates = []
 
     def _complete(self, text, state):
         if state == 0:
-            self._candidates = self._locker.get_tags(text)
+            self._candidates = self._keybox.get_tags(text)
         try:
             return self._candidates[state]
         except IndexError:
@@ -245,7 +245,7 @@ class ShellUI(BaseUI):
         See `start`.
 
         """
-        completer = ShellCompleter(self._locker, self._filter_commands)
+        completer = ShellCompleter(self._keybox, self._filter_commands)
         while not self._quit:
             signal.alarm(SHELL_TIMEOUT_SECS)
             cmdline = completer.input("> ")
@@ -318,11 +318,11 @@ class ShellUI(BaseUI):
         if prompt.startswith('Password:'):
             completer = PasswordCompleter()
         elif prompt.startswith('User:'):
-            completer = UserCompleter(self._locker)
+            completer = UserCompleter(self._keybox)
         elif prompt.startswith('URL:'):
             completer = UrlCompleter()
         elif prompt.startswith('Tags:'):
-            completer = TagsCompleter(self._locker)
+            completer = TagsCompleter(self._keybox)
         else:
             completer = BaseCompleter()
         return completer.input(prompt)

@@ -13,7 +13,7 @@ setup(
     packages=['keys'],
     entry_points={
         'console_scripts': [
-            'pw = keys.main:main',
+            'keys = keys.main:main',
         ],
     },
 )

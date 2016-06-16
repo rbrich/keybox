@@ -10,9 +10,9 @@ import os
 import fcntl
 
 from keys.stringutil import contains
-from keys.locker import Locker
+from keys.keybox import Keybox
 
-DEFAULT_FILENAME = 'keys.gpg'
+DEFAULT_FILENAME = 'keybox.gpg'
 
 
 def with_write_access(func):
@@ -57,7 +57,7 @@ class BaseUI:
         #: When write succeeds, the temp file will be moved to target file name
         self._filename_tmp = filename + '.tmp'
         self._wfile = None
-        self._locker = Locker()
+        self._keybox = Keybox()
         self._selected_record = None  # Record
 
     def open(self, readonly=False):
@@ -77,9 +77,9 @@ class BaseUI:
 
     def close(self, write=True):
         if self.readonly():
-            assert not self._locker.modified(), "Modified in read-only mode"
+            assert not self._keybox.modified(), "Modified in read-only mode"
             return
-        if self._locker.modified() and write:
+        if self._keybox.modified() and write:
             self._write()
         else:
             self._close_tmp()
@@ -89,8 +89,8 @@ class BaseUI:
 
     @with_write_access
     def cmd_write(self):
-        """Write changes to locker file"""
-        if self._locker.modified():
+        """Write changes to keybox file"""
+        if self._keybox.modified():
             self._write()
             self._open_tmp()
 
@@ -98,7 +98,7 @@ class BaseUI:
     def cmd_reset(self):
         """Change master passphrase"""
         passphrase = self._input_pass('Enter current passphrase: ')
-        if not self._locker.check_passphrase(passphrase):
+        if not self._keybox.check_passphrase(passphrase):
             self._print('Not accepted.')
             return
         passphrase = self._input_pass('Enter new passphrase: ')
@@ -106,7 +106,7 @@ class BaseUI:
         if passphrase != passphrase_check:
             self._print("Not same...")
             return
-        self._locker.set_passphrase(passphrase)
+        self._keybox.set_passphrase(passphrase)
 
     @with_write_access
     def cmd_add(self, user=None, password=None):
@@ -123,7 +123,7 @@ class BaseUI:
             'tags':     self._input('Tags:'.ljust(10)),
             'note':     self._input('Note:'.ljust(10)),
         }
-        self._selected_record = self._locker.add_record(**record)
+        self._selected_record = self._keybox.add_record(**record)
 
     def cmd_list(self, filter_expr='', order_by='site'):
         """Print list of records, applying filters
@@ -141,7 +141,7 @@ class BaseUI:
         * ``list user:admin url`` (records with "admin" user, ordered by URL)
 
         """
-        candidates = self._locker.get_columns(order_by)
+        candidates = self._keybox.get_columns(order_by)
         if len(candidates) != 1:
             return self._print("Unknown `order_by` column:", order_by)
         order_by = candidates[0]
@@ -149,7 +149,7 @@ class BaseUI:
             columns, text = self._parse_filter(filter_expr, ('tags',))
         except Exception as e:
             return self._print(e)
-        for record in sorted(self._locker, key=lambda r: r[order_by]):
+        for record in sorted(self._keybox, key=lambda r: r[order_by]):
             if any(contains(record[column], text) for column in columns):
                 self._print(record)
 
@@ -171,7 +171,7 @@ class BaseUI:
             columns, text = self._parse_filter(filter_expr, ('site', 'url'))
         except Exception as e:
             return self._print(e)
-        filtered_records = [record for record in self._locker
+        filtered_records = [record for record in self._keybox
                             if any(contains(record[column], text)
                                    for column in columns)]
         if len(filtered_records) == 0:
@@ -205,16 +205,16 @@ class BaseUI:
             return self._print("Invalid value for `min_count`:", min_count)
         # Total count
         if not group_by:
-            return self._print(len(self._locker))
+            return self._print(len(self._keybox))
         # Prepare counter objects according to `group_by` parameter
-        candidates = self._locker.get_columns(group_by)
+        candidates = self._keybox.get_columns(group_by)
         if len(candidates) != 1:
             return self._print("Unknown group_by column:", group_by)
         if 'tag'.startswith(group_by.lower()):
             counter = Counter(itertools.chain.from_iterable(
-                record['tags'].split() for record in self._locker))
+                record['tags'].split() for record in self._keybox))
         else:
-            counter = Counter(record[candidates[0]] for record in self._locker)
+            counter = Counter(record[candidates[0]] for record in self._keybox)
         # Print the counts
         for key, count in counter.most_common():
             if count < min_count:
@@ -236,7 +236,7 @@ class BaseUI:
         When no `value` given, delete current value.
 
         """
-        candidates = self._locker.get_columns(column)
+        candidates = self._keybox.get_columns(column)
         if len(candidates) != 1:
             return self._print('Unknown column:', column)
         column = candidates[0]
@@ -250,7 +250,7 @@ class BaseUI:
                           "This cannot be taken back! [y/n] ")
         if ans != 'y':
             return
-        self._locker.delete_record(self._selected_record)
+        self._keybox.delete_record(self._selected_record)
         self._selected_record = None
         self._print("Record deleted.")
 
@@ -261,9 +261,9 @@ class BaseUI:
             self._print()
             return False
         try:
-            self._locker.set_passphrase(passphrase)
+            self._keybox.set_passphrase(passphrase)
             with open(self._filename, 'rb') as f:
-                self._locker.read(f)
+                self._keybox.read(f)
         except Exception as e:
             self._print(e)
             return False
@@ -277,7 +277,7 @@ class BaseUI:
             if passphrase != passphrase_check:
                 self._print("Not same...")
                 return False
-            self._locker.set_passphrase(passphrase)
+            self._keybox.set_passphrase(passphrase)
         else:  # ans != 'y'
             return False
         return True
@@ -306,7 +306,7 @@ class BaseUI:
 
     def _write(self):
         # Write records to tmp file
-        self._locker.write(self._wfile)
+        self._keybox.write(self._wfile)
         # Then rename it to target name, potentially overwriting old version
         os.rename(self._filename_tmp, self._filename)
         # Close tmp file, which will also release the lock
@@ -328,7 +328,7 @@ class BaseUI:
             text = filter_expr
         selected_columns = []
         for column in columns:
-            candidates = self._locker.get_columns(column)
+            candidates = self._keybox.get_columns(column)
             if len(candidates) != 1:
                 raise Exception("Unknown or ambiguous column name: " + column)
             selected_columns += candidates

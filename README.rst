@@ -6,8 +6,8 @@ Introduction
 ------------
 
 Keys is a Python package with utilities for managing your passwords, keys
-and any other secrets. It can be used directly from Python (import keys)
-or using simple UI (python3 -m keys).
+and other secrets. It can be used directly from Python (``import keys``) or
+run as program (``python3 -m keys``, or just ``keys``).
 
 Unlike most password managers, this is completely offline. All your secrets
 stay safe in local file. Nothing is sent anywhere, unless you explicitly
@@ -40,7 +40,7 @@ Dependencies:
 Installation
 ^^^^^^^^^^^^
 
-Install Python package together with `keys` script::
+Install Python package together with ``keys`` script::
 
     python3 setup.py install
 
@@ -52,7 +52,7 @@ The package can also be run directly::
 Getting Started
 ^^^^^^^^^^^^^^^
 
-Run the program, type master password. New keys file will be created.
+Run the program, type master password. New keybox file will be created.
 
 You are now in the shell. The basic workflow is as follows:
 

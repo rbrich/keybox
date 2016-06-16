@@ -6,13 +6,13 @@ import os
 from keys.memlock import memlock
 from keys.ui import DEFAULT_FILENAME
 from keys.shell import ShellUI
-from keys.batch import LockerBatch
+from keys.batch import KeyboxBatch
 from keys import pwgen
 
 
 def parse_args():
     """Process command line args."""
-    ap = argparse.ArgumentParser(description="password locker",
+    ap = argparse.ArgumentParser(description="Keybox manager",
                                  formatter_class=argparse.RawTextHelpFormatter)
 
     ap.add_argument('command', choices=['shell', 'pwgen', 'import', 'export'],
@@ -21,13 +21,13 @@ def parse_args():
                          "pwgen: generate random password\n"
                          "import: import formatted records from stdin "
                          "or another file (-i <file>)\n"
-                         "export: decrypt and export content of locker file "
+                         "export: decrypt and export content of keybox file "
                          "to stdout")
 
-    ap.add_argument('-f', dest='locker_file', default=DEFAULT_FILENAME,
-                    help="password locker file (default: %(default)s)")
+    ap.add_argument('-f', dest='keybox_file', default=DEFAULT_FILENAME,
+                    help="keybox file (default: %(default)s)")
     ap.add_argument('-r', dest="readonly", action="store_true",
-                    help="open locker in read-only mode")
+                    help="open keybox in read-only mode")
     ap.add_argument('-i', dest='import_file', type=str, default='-',
                     help="import: use this file instead of stdin")
     ap.add_argument('-o', dest='export_file', type=str, default='-',
@@ -55,7 +55,7 @@ def parse_args():
 
 def cmd_shell(args):
     memlock()
-    shell = ShellUI(args.locker_file)
+    shell = ShellUI(args.keybox_file)
     shell.start(args.readonly)
 
 
@@ -69,26 +69,26 @@ def cmd_pwgen(args):
 
 def cmd_import(args):
     passphrase = getpass('Passphrase:')
-    locker = LockerBatch(passphrase)
-    with open(args.locker_file, 'rb') as f:
-        locker.read(f)
-    num_total, num_ok = locker.import_file(args.import_file)
+    keybox = KeyboxBatch(passphrase)
+    with open(args.keybox_file, 'rb') as f:
+        keybox.read(f)
+    num_total, num_ok = keybox.import_file(args.import_file)
     print("%d records imported (%d duplicates)."
           % (num_ok, num_total - num_ok))
     if num_ok > 0:
-        filename_tmp = args.locker_file + '.tmp'
+        filename_tmp = args.keybox_file + '.tmp'
         with open(filename_tmp, 'wb') as f:
             fcntl.lockf(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            locker.write(f)
-            os.rename(filename_tmp, args.locker_file)
+            keybox.write(f)
+            os.rename(filename_tmp, args.keybox_file)
 
 
 def cmd_export(args):
     passphrase = getpass('Passphrase:')
-    locker = LockerBatch(passphrase)
-    with open(args.locker_file, 'rb') as f:
-        locker.read(f)
-    locker.export_file(args.export_file)
+    keybox = KeyboxBatch(passphrase)
+    with open(args.keybox_file, 'rb') as f:
+        keybox.read(f)
+    keybox.export_file(args.export_file)
 
 
 def main():

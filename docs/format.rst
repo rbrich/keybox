@@ -17,7 +17,7 @@ Features:
 - Tab character is reserved and cannot be used in values.
 - Passwords are encrypted inside the whole encrypted file. This adds no security,
   but I feel better not having all passwords decrypted into memory every time
-  I access the locker.
+  I access the keybox.
 
 Import
 ------
@@ -43,7 +43,7 @@ and import the file:
     $ # Import output from other program
     $ cat import.recs | keys import
 
-How to create locker file using standard tools
+How to create keybox file using standard tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This recipe shows how to create new file with single record:
 
@@ -70,7 +70,7 @@ Use export function to decrypt all data including passwords:
 This will print exported data to stdout, which can be directed to other
 programs. This is useful for conversion to other formats.
 
-How to decrypt locker file using standard tools
+How to decrypt keybox file using standard tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This recipe shows how to decrypt *pw.gpg* file created before:
 
