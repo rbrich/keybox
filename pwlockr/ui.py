@@ -146,11 +146,11 @@ class BaseUI:
             return self._print("Unknown `order_by` column:", order_by)
         order_by = candidates[0]
         try:
-            column, text = self._parse_filter(filter_expr, 'tags')
+            columns, text = self._parse_filter(filter_expr, ('tags',))
         except Exception as e:
             return self._print(e)
         for record in sorted(self._locker, key=lambda r: r[order_by]):
-            if contains(record[column], text):
+            if any(contains(record[column], text) for column in columns):
                 self._print(record)
 
     def cmd_select(self, filter_expr=None):
@@ -158,20 +158,22 @@ class BaseUI:
 
         Prints selected record when called without argument.
         When called with one argument, it is used as filter expression
-        to search for records to be selected.
+        to search for records.
 
-        Format of `filter_expr` is [<column>:]<text>. Default column is 'site'.
+        Format of `filter_expr` is [<column>:]<text>.
+        By default, columns 'site' and 'url' are searched.
 
         """
         if filter_expr is None:
             self._print(self._selected_record or "Nothing selected.")
             return
         try:
-            column, text = self._parse_filter(filter_expr, 'site')
+            columns, text = self._parse_filter(filter_expr, ('site', 'url'))
         except Exception as e:
             return self._print(e)
         filtered_records = [record for record in self._locker
-                            if contains(record[column], text)]
+                            if any(contains(record[column], text)
+                                   for column in columns)]
         if len(filtered_records) == 0:
             self._print('Not found.')
             self._selected_record = None
@@ -312,24 +314,27 @@ class BaseUI:
         self._close_tmp(unlink=False)
         self._print("Changes saved to %s." % self._filename)
 
-    def _parse_filter(self, filter_expr, default_column) -> tuple:
-        """Parse filter expression, check column name.
+    def _parse_filter(self, filter_expr, default_columns: tuple) -> tuple:
+        """Parse filter expression, check column names.
 
-        Returns (column, text).
+        Returns tuple: ((column1, ...), text).
 
         """
         try:
-            column, text = filter_expr.split(':', 1)
+            columns, text = filter_expr.split(':', 1)
+            columns = columns.split(',')
         except ValueError:
-            column = default_column
+            columns = default_columns
             text = filter_expr
-        candidates = self._locker.get_columns(column)
-        if len(candidates) != 1:
-            raise Exception("Unknown column in `filter_expr`: " + column)
-        column = candidates[0]
+        selected_columns = []
+        for column in columns:
+            candidates = self._locker.get_columns(column)
+            if len(candidates) != 1:
+                raise Exception("Unknown or ambiguous column name: " + column)
+            selected_columns += candidates
         if text == '*':
             text = ''
-        return column, text
+        return selected_columns, text
 
     def _print(self, *args, **kwargs):
         """Wrap print function to allow overriding."""
