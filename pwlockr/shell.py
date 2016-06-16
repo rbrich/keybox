@@ -45,21 +45,13 @@ class BaseCompleter:
         return value
 
     def _reset(self):
-        if self._complete:
-            readline.parse_and_bind('tab: complete')
-            readline.set_completer(self._complete)
-            readline.set_completer_delims(self._delims)
-        else:
-            readline.parse_and_bind('tab:')
-            readline.set_completer()
-        if self._display_matches:
-            readline.set_completion_display_matches_hook(self._display_matches)
-        else:
-            readline.set_completion_display_matches_hook()
+        readline.parse_and_bind('TAB: complete')
+        readline.set_completer(self._complete)
+        readline.set_completer_delims(self._delims)
+        readline.set_completion_display_matches_hook(self._display_matches)
 
-    @not_implemented
     def _complete(self, text, state):
-        pass
+        return
 
     @not_implemented
     def _display_matches(self, substitution, matches, longest_match_length):
@@ -127,6 +119,7 @@ class PasswordCompleter(BaseCompleter):
     def _complete(self, text, state):
         if state == 0:
             if text:
+                # Replace the shortcut with password from generated list
                 if len(text) == 1 and '0' <= text <= '9':
                     self._candidates = [self._passwords[int(text)]]
                 elif len(text) == 1 and 'a' <= text <= 'j':
@@ -134,10 +127,12 @@ class PasswordCompleter(BaseCompleter):
                 else:
                     self._candidates = []
             else:
+                # Fill password list
                 self._passwords = [pwgen.generate_password() for _ in range(10)] + \
                                   [pwgen.generate_passphrase() for _ in range(10)]
+                # Display passwords with shortcuts as candidates
                 self._candidates = ["%s: %s" % (n if n < 10 else chr(ord('a') + n - 10), p)
-                                    for n, p in enumerate(self._candidates)]
+                                    for n, p in enumerate(self._passwords)]
         try:
             return self._candidates[state]
         except IndexError:
