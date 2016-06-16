@@ -4,8 +4,8 @@
 
 import sys
 
-from pwlockr.locker import Locker
-from pwlockr.fileformat import write_file, read_file
+from keys.locker import Locker
+from keys.fileformat import write_file, read_file
 
 
 class LockerBatch(Locker):

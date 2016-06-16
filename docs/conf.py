@@ -17,7 +17,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'pwlockr'
+project = 'keys'
 copyright = '2015, Radek Brich'
 
 # The short X.Y version.
@@ -45,7 +45,7 @@ html_theme_options = {
 }
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pwlockrdoc'
+htmlhelp_basename = 'keysdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -59,7 +59,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'pwlockr.tex', 'Password locker', 'Radek Brich', 'manual'),
+    ('index', 'keys.tex', 'Password locker', 'Radek Brich', 'manual'),
 ]
 
 # If false, no module index is generated.
@@ -71,6 +71,6 @@ latex_domain_indices = False
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pwlockr', 'Password locker', ['Radek Brich'], 1),
-    ('format', 'pwlockr', 'Password locker file format', ['Radek Brich'], 5),
+    ('index', 'keys', 'Password locker', ['Radek Brich'], 1),
+    ('format', 'keys', 'Password locker file format', ['Radek Brich'], 5),
 ]

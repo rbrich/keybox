@@ -1,20 +1,23 @@
-=========================
-Password Locker (pwlockr)
-=========================
+====
+Keys
+====
 
 Introduction
 ------------
 
-Pwlockr is a program built around simple file format. The file is encrypted
-using strong encryption. Unlike most password managers, this is completely
-offline. All your secrets stay safe in local file. Nothing is sent anywhere,
-unless you explicitly set up network synchronization using some other tool.
+Keys is a Python package with utilities for managing your passwords, keys
+and any other secrets. It can be used directly from Python (import keys)
+or using simple UI (python3 -m keys).
+
+Unlike most password managers, this is completely offline. All your secrets
+stay safe in local file. Nothing is sent anywhere, unless you explicitly
+set up network synchronization using some other tool.
 
 Features:
 
-- Shell-like text user interface
-- Data encrypted with GPG
+- Data encrypted using strong encryption (GPG file)
 - Simple tab-delimited file format
+- Shell-like text user interface
 
 Security:
 
@@ -24,7 +27,7 @@ Security:
 Portability:
 
 - The script should run on any system with Python3 and GPG installed.
-- Requires no installation. You can bring your password locker with you anywhere.
+- Requires no installation. You can bring your keys with you anywhere.
 - Can be contained in single Python file (see Distribution_ bellow)
 
 Dependencies:
@@ -37,19 +40,19 @@ Dependencies:
 Installation
 ^^^^^^^^^^^^
 
-Install Python package together with `pw` script by calling::
+Install Python package together with `keys` script::
 
     python3 setup.py install
 
 The package can also be run directly::
 
-    python3 -m pwlockr
+    python3 -m keys
 
 
 Getting Started
 ^^^^^^^^^^^^^^^
 
-Run the program, type master password. New locker file will be created.
+Run the program, type master password. New keys file will be created.
 
 You are now in the shell. The basic workflow is as follows:
 
@@ -65,16 +68,16 @@ See **help** for list of all commands.
 Password Generator
 ^^^^^^^^^^^^^^^^^^
 
-Bundled password generator can be called from command line (``pw gen``)
-or internally from shell. Try ``add user <tab>``.
+Bundled password generator can be called from command line (``keys pwgen``)
+or internally from shell. Try ``<tab>`` when asked for password (add command).
 
 Pwgen is based on system word list usually found in ``/usr/share/dict/words``.
-By default, it makes password from two words concatenated with an underline
-and two random characters inserted at random places.
+By default, it makes password from two concatenated words, one uppercase letter,
+one digit and one punctuation character.
 
 This gives around 50 bits of entropy on my system. [#wiki]_
 
-See :mod:`pwlockr.pwgen` for more information.
+See :mod:`keys.pwgen` for more information.
 
 .. [#wiki] http://en.wikipedia.org/wiki/Password_strength
 
@@ -87,7 +90,6 @@ is written to ``dist`` directory and is directly executable by Python.
 
 Additional requirement for Python 3.2 is ``funcsigs`` package.
 It can be installed from pypy (``pip3 install funcsigs``).
-Call ``make zipapp32`` to also embed funcsigs source into pwlockr
-zipapp file.
+Call ``make zipapp32`` to also embed funcsigs source into zipapp file.
 
 .. [#zipapp] https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format

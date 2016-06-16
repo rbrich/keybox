@@ -9,10 +9,10 @@ import itertools
 import os
 import fcntl
 
-from pwlockr.stringutil import contains
-from pwlockr.locker import Locker
+from keys.stringutil import contains
+from keys.locker import Locker
 
-DEFAULT_FILENAME = 'pwlockr.gpg'
+DEFAULT_FILENAME = 'keys.gpg'
 
 
 def with_write_access(func):

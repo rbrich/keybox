@@ -1,12 +1,12 @@
 import unittest
 import os
 
-from pwlockr.gpg import encrypt, decrypt
-from pwlockr.record import Record, COLUMNS
-from pwlockr.locker import Locker, LockerRecord
-from pwlockr.fileformat import format_file, parse_file
-from pwlockr.ui import BaseUI
-from pwlockr import pwgen
+from keys.gpg import encrypt, decrypt
+from keys.record import Record, COLUMNS
+from keys.locker import Locker, LockerRecord
+from keys.fileformat import format_file, parse_file
+from keys.ui import BaseUI
+from keys import pwgen
 
 
 class TestPasswordGenerator(unittest.TestCase):
@@ -138,7 +138,7 @@ class TestLocker(unittest.TestCase):
             'note': 'This is example record.',
             'password': 'pa$$w0rD',
         }
-        self._filename = '/tmp/test_pwlockr.gpg'
+        self._filename = '/tmp/test_keys.gpg'
         self._passphrase = 'secret'
 
     def test_write_read(self):
@@ -174,7 +174,7 @@ class TestLocker(unittest.TestCase):
 class TestUI(unittest.TestCase):
 
     def setUp(self):
-        self._filename = '/tmp/test_pwlockr.gpg'
+        self._filename = '/tmp/test_keys.gpg'
         self._passphrase = 'secret'
         self._passphrase_b = 'newPASS'
         self._script = [
@@ -210,7 +210,7 @@ class TestUI(unittest.TestCase):
             ("Delete selected record? This cannot be taken back! [y/n] ", "y"),
             ("Record deleted.", None),
             # close
-            ("Changes saved to /tmp/test_pwlockr.gpg.", None),
+            ("Changes saved to /tmp/test_keys.gpg.", None),
             (0, 0),
         ]
 

@@ -13,8 +13,8 @@ except ImportError:
     # Python 3.2 and older (pip3 install funcsigs)
     from funcsigs import signature
 
-from pwlockr.ui import BaseUI, DEFAULT_FILENAME
-from pwlockr import pwgen
+from keys.ui import BaseUI, DEFAULT_FILENAME
+from keys import pwgen
 
 SHELL_TIMEOUT_SECS = 60 * 60  # 1 hour
 

@@ -3,11 +3,11 @@ from getpass import getpass
 import fcntl
 import os
 
-from pwlockr.memlock import memlock
-from pwlockr.ui import DEFAULT_FILENAME
-from pwlockr.shell import ShellUI
-from pwlockr.batch import LockerBatch
-from pwlockr import pwgen
+from keys.memlock import memlock
+from keys.ui import DEFAULT_FILENAME
+from keys.shell import ShellUI
+from keys.batch import LockerBatch
+from keys import pwgen
 
 
 def parse_args():
@@ -15,10 +15,10 @@ def parse_args():
     ap = argparse.ArgumentParser(description="password locker",
                                  formatter_class=argparse.RawTextHelpFormatter)
 
-    ap.add_argument('command', choices=['shell', 'gen', 'import', 'export'],
+    ap.add_argument('command', choices=['shell', 'pwgen', 'import', 'export'],
                     nargs='?', default='shell',
                     help="shell: start shell (default)\n"
-                         "gen: generate random password\n"
+                         "pwgen: generate random password\n"
                          "import: import formatted records from stdin "
                          "or another file (-i <file>)\n"
                          "export: decrypt and export content of locker file "
@@ -35,19 +35,19 @@ def parse_args():
 
     # pwgen args
     ap.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
-                    help="gen: minimal length of password "
+                    help="pwgen: minimal length of password "
                          "(default: %(default)s)")
     ap.add_argument('-w', dest='words', type=int, default=pwgen.NUM_WORDS,
-                    help="gen: number of words to concatenate "
+                    help="pwgen: number of words to concatenate "
                          "(default: %(default)s)")
     ap.add_argument('-u', dest='upper', type=int, default=pwgen.NUM_UPPER,
-                    help="gen: number of letters to make uppercase "
+                    help="pwgen: number of letters to make uppercase "
                          "(default: %(default)s)")
     ap.add_argument('-d', dest='digits', type=int, default=pwgen.NUM_DIGITS,
-                    help="gen: number of digits to add "
+                    help="pwgen: number of digits to add "
                          "(default: %(default)s)")
     ap.add_argument('-s', dest='special', type=int, default=pwgen.NUM_SPECIAL,
-                    help="gen: number of special symbols to add "
+                    help="pwgen: number of special symbols to add "
                          "(default: %(default)s)")
 
     return ap.parse_args()
@@ -59,7 +59,7 @@ def cmd_shell(args):
     shell.start(args.readonly)
 
 
-def cmd_gen(args):
+def cmd_pwgen(args):
     for _ in range(10):
         print(pwgen.generate_password(args.length),
               pwgen.generate_passphrase(args.words, args.length,

@@ -7,9 +7,9 @@ import time
 import os
 import itertools
 
-from pwlockr.gpg import encrypt, decrypt
-from pwlockr.record import Record, COLUMNS
-from pwlockr.fileformat import format_file, parse_file
+from keys.gpg import encrypt, decrypt
+from keys.record import Record, COLUMNS
+from keys.fileformat import format_file, parse_file
 
 
 class LockerRecord:

@@ -86,17 +86,17 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/pwlockr.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/keys.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/pwlockr.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/keys.qhc"
 
 devhelp:
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/pwlockr"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/pwlockr"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/keys"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/keys"
 	@echo "# devhelp"
 
 epub:
@@ -178,4 +178,4 @@ pseudoxml:
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
 
 apidoc:
-	$(SPHINXAPIDOC) .. -o . ../pwlockr.py ../combine_sources.py -T
+	$(SPHINXAPIDOC) .. -o . ../keys.py -T
