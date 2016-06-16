@@ -109,6 +109,22 @@ class ShellCompleter(BaseCompleter):
             return []
 
 
+class UserCompleter(BaseCompleter):
+
+    def __init__(self, locker):
+        BaseCompleter.__init__(self)
+        self._locker = locker
+        self._candidates = []
+
+    def _complete(self, text, state):
+        if state == 0:
+            self._candidates = self._locker.get_column_values('user', text)
+        try:
+            return self._candidates[state]
+        except IndexError:
+            return None
+
+
 class PasswordCompleter(BaseCompleter):
 
     def __init__(self):
@@ -171,11 +187,13 @@ class TagsCompleter(BaseCompleter):
     def __init__(self, locker):
         BaseCompleter.__init__(self)
         self._locker = locker
+        self._candidates = []
 
     def _complete(self, text, state):
-        candidates = self._locker.get_tags(text)
+        if state == 0:
+            self._candidates = self._locker.get_tags(text)
         try:
-            return candidates[state]
+            return self._candidates[state]
         except IndexError:
             return None
 
@@ -294,6 +312,8 @@ class ShellUI(BaseUI):
         # Special handling for cmd_add fields
         if prompt.startswith('Password:'):
             completer = PasswordCompleter()
+        elif prompt.startswith('User:'):
+            completer = UserCompleter(self._locker)
         elif prompt.startswith('URL:'):
             completer = UrlCompleter()
         elif prompt.startswith('Tags:'):

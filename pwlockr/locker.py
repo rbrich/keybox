@@ -119,6 +119,11 @@ class Locker:
     def get_column_width(self, column):
         return self._column_widths[column]
 
+    def get_column_values(self, column, start_text=None):
+        start_text = (start_text or '').lower()
+        return sorted(record[column] for record in self._records
+                      if record[column].startswith(start_text))
+
     def get_tags(self, start_text=None):
         start_text = (start_text or '').lower()
         all_tags = set(itertools.chain.from_iterable(
