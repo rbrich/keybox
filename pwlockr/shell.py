@@ -214,6 +214,7 @@ class ShellUI(BaseUI):
         self._command_map = {}  # name: (func, params)
         self._fill_commands()
         self._quit = False
+        self._write_on_quit = True
 
         def sighup_handler(signum, frame):
             self.close()
@@ -235,7 +236,7 @@ class ShellUI(BaseUI):
         except TimeoutError:
             print("quit\nTimeout after %s seconds." % SHELL_TIMEOUT_SECS)
         finally:
-            self.close()
+            self.close(write=self._write_on_quit)
 
     def mainloop(self):
         """The main loop.
@@ -273,11 +274,15 @@ class ShellUI(BaseUI):
                 print("Unknown command. Try 'help'.")
 
     def cmd_quit(self):
-        """Save locker and quit."""
+        """Save and quit"""
         self._quit = True
 
+    def cmd_nowrite(self):
+        """Do not write changes on quit"""
+        self._write_on_quit = False
+
     def cmd_help(self, command=None):
-        """Print list of all commands or full help for a command."""
+        """Print list of all commands or full help for a command"""
         filtered_commands = []
         if command:
             filtered_commands = self._filter_commands(command)

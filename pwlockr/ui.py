@@ -75,11 +75,11 @@ class BaseUI:
                 return False
         return ok
 
-    def close(self):
+    def close(self, write=True):
         if self.readonly():
             assert not self._locker.modified(), "Modified in read-only mode"
             return
-        if self._locker.modified():
+        if self._locker.modified() and write:
             self._write()
         else:
             self._close_tmp()
@@ -89,14 +89,14 @@ class BaseUI:
 
     @with_write_access
     def cmd_write(self):
-        """Write changes to locker file."""
+        """Write changes to locker file"""
         if self._locker.modified():
             self._write()
             self._open_tmp()
 
     @with_write_access
     def cmd_reset(self):
-        """Change master passphrase."""
+        """Change master passphrase"""
         passphrase = self._input_pass('Enter current passphrase: ')
         if not self._locker.check_passphrase(passphrase):
             self._print('Not accepted.')
@@ -110,7 +110,7 @@ class BaseUI:
 
     @with_write_access
     def cmd_add(self, user=None, password=None):
-        """Add new record.
+        """Add new record
 
         Selects the new record when done.
 
@@ -126,7 +126,7 @@ class BaseUI:
         self._selected_record = self._locker.add_record(**record)
 
     def cmd_list(self, filter_expr='', order_by='site'):
-        """Print list of records, applying filters.
+        """Print list of records, applying filters
 
         Format of `filter_expr` is [<column>:]<text>. Default column is 'tags'.
         Special expression '*' matches everything.
@@ -154,7 +154,7 @@ class BaseUI:
                 self._print(record)
 
     def cmd_select(self, filter_expr=None):
-        """Select a record or print currently selected record.
+        """Select a record or print currently selected record
 
         Prints selected record when called without argument.
         When called with one argument, it is used as filter expression
@@ -190,7 +190,7 @@ class BaseUI:
             self._print("Not found.")
 
     def cmd_count(self, group_by=None, min_count=2):
-        """Print number of records with same value in `group_by` column.
+        """Print number of unique values in `group_by` column
 
         With no arguments, prints total number of records.
         With one argument, prints all values with repeated use
@@ -223,13 +223,13 @@ class BaseUI:
 
     @with_selected_record
     def cmd_print(self):
-        """Print password from selected record."""
+        """Print password from selected record"""
         self._print(self._selected_record['password'])
 
     @with_write_access
     @with_selected_record
     def cmd_modify(self, column, value=None):
-        """Modify selected record.
+        """Modify selected record
 
         When no `value` given, delete current value.
 
@@ -243,7 +243,7 @@ class BaseUI:
     @with_write_access
     @with_selected_record
     def cmd_delete(self):
-        """Delete selected record."""
+        """Delete selected record"""
         ans = self._input("Delete selected record? "
                           "This cannot be taken back! [y/n] ")
         if ans != 'y':
