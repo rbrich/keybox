@@ -6,12 +6,13 @@ from getpass import getpass
 from functools import wraps
 from collections import Counter
 import itertools
-import os
+import os.path
 import fcntl
 
 from keys.stringutil import contains
 from keys.keybox import Keybox
 
+DATA_DIR = '~/.keys'
 DEFAULT_FILENAME = 'keybox.gpg'
 
 
@@ -51,8 +52,8 @@ class BaseUI:
 
     """
 
-    def __init__(self, filename=DEFAULT_FILENAME):
-        self._filename = filename
+    def __init__(self, filename=None):
+        self._filename = filename or self.get_default_filename()
         #: We will write to temporary file to avoid data loss when write fails
         #: When write succeeds, the temp file will be moved to target file name
         self._filename_tmp = filename + '.tmp'
@@ -60,7 +61,12 @@ class BaseUI:
         self._keybox = Keybox()
         self._selected_record = None  # Record
 
+    ################
+    # Open / Close #
+    ################
+
     def open(self, readonly=False):
+        self._expand_filename()
         self._print("Opening file %r... " % self._filename)
         if os.path.exists(self._filename):
             ok = self._open_existing()
@@ -86,6 +92,10 @@ class BaseUI:
 
     def readonly(self):
         return self._wfile is None
+
+    ###############
+    # UI Commands #
+    ###############
 
     @with_write_access
     def cmd_write(self):
@@ -254,6 +264,18 @@ class BaseUI:
         self._selected_record = None
         self._print("Record deleted.")
 
+    ################
+    # File Utility #
+    ################
+
+    @staticmethod
+    def get_default_filename():
+        return os.path.join(DATA_DIR, DEFAULT_FILENAME)
+
+    def _expand_filename(self):
+        self._filename = os.path.expanduser(self._filename)
+        self._filename_tmp = self._filename + '.tmp'
+
     def _open_existing(self):
         try:
             passphrase = self._input_pass("Passphrase: ")
@@ -270,8 +292,8 @@ class BaseUI:
         return True
 
     def _create_new(self):
-        ans = self._input("File not found. Create new? [y/n] ")
-        if ans.lower()[0] == 'y':
+        ans = self._input("File not found. Create new? [Y/n] ")
+        if len(ans) == 0 or ans.lower()[0] == 'y':
             passphrase = self._input_pass("Enter passphrase: ")
             passphrase_check = self._input_pass("Re-enter passphrase: ")
             if passphrase != passphrase_check:
@@ -285,6 +307,8 @@ class BaseUI:
     def _open_tmp(self):
         """Prepare tmp file for writing and lock it"""
         try:
+            os.makedirs(os.path.dirname(self._filename_tmp), 0o700,
+                        exist_ok=True)
             self._wfile = open(self._filename_tmp, 'wb')
         except OSError as e:
             self._print("Warning: Can't open file for writing: %s" % e)
@@ -313,6 +337,10 @@ class BaseUI:
         # It's important to do this after rename to avoid race condition
         self._close_tmp(unlink=False)
         self._print("Changes saved to %s." % self._filename)
+
+    #################
+    # Other Utility #
+    #################
 
     def _parse_filter(self, filter_expr, default_columns: tuple) -> tuple:
         """Parse filter expression, check column names.

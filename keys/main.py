@@ -4,7 +4,6 @@ import fcntl
 import os
 
 from keys.memlock import memlock
-from keys.ui import DEFAULT_FILENAME
 from keys.shell import ShellUI
 from keys.batch import KeyboxBatch
 from keys import pwgen
@@ -24,7 +23,8 @@ def parse_args():
                          "export: decrypt and export content of keybox file "
                          "to stdout")
 
-    ap.add_argument('-f', dest='keybox_file', default=DEFAULT_FILENAME,
+    ap.add_argument('-f', dest='keybox_file',
+                    default=ShellUI.get_default_filename(),
                     help="keybox file (default: %(default)s)")
     ap.add_argument('-r', dest="readonly", action="store_true",
                     help="open keybox in read-only mode")

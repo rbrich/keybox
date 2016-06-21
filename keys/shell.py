@@ -13,7 +13,7 @@ except ImportError:
     # Python 3.2 and older (pip3 install funcsigs)
     from funcsigs import signature
 
-from keys.ui import BaseUI, DEFAULT_FILENAME
+from keys.ui import BaseUI
 from keys import pwgen
 
 SHELL_TIMEOUT_SECS = 60 * 60  # 1 hour
@@ -208,7 +208,7 @@ class ShellUI(BaseUI):
 
     """
 
-    def __init__(self, filename=DEFAULT_FILENAME):
+    def __init__(self, filename=None):
         super().__init__(filename)
         self._commands = []
         self._command_map = {}  # name: (func, params)

@@ -5,4 +5,4 @@ keys.egg-info/
 docs/_build/
 htmlcov/
 .coverage
-pwlockr.gpg
+keybox.gpg
