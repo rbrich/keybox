@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import select
+import time
 
 import ptyprocess
 import pytest
@@ -17,20 +18,25 @@ class ExpectBase:
             self.fill(rest)
             rest = None
         while self.more():
-            events = poll.poll(3000)
+            events = poll.poll(2000)
             assert len(events), "Timeout while waiting for shell output, " \
                                 "expected: %r (line %s)" % \
                                 (self, line)
             for fd, event in events:
                 assert fd == p.fileno()
-                assert event == select.POLLIN
-            try:
-                text = p.read()
-                rest = self.fill(text)
-            except EOFError:
-                assert False, "Expected more output from shell"
-            if not text:
-                continue
+                assert event & select.POLLIN
+                event -= select.POLLIN
+                try:
+                    text = p.read()
+                    if not text:
+                        continue
+                    rest = self.fill(text)
+                except EOFError:
+                    event |= select.POLLHUP
+                assert not event or event == select.POLLHUP
+                if event & select.POLLHUP:
+                    assert not self.more(), "Expected more output from shell"
+                    break
         self.check()
         p._Expect_unread = rest
 
@@ -68,10 +74,10 @@ class Expect(ExpectBase):
         return len(self._got) < len(self._expected)
 
     def fill(self, text):
-        self._got += ''.join(text.split('\r\n'))
+        self._got += text.replace('\r\n', '\n')
 
     def check(self):
-        assert str(self._expected) == self._got,\
+        assert str(self._expected).strip('\n') == self._got.strip('\n'), \
             "Script expected %r, got %r" % (self._expected, self._got)
 
     def __repr__(self):
@@ -144,6 +150,15 @@ class SendControl:
         p.sendcontrol(self._char)
 
 
+class Wait:
+
+    def __init__(self, seconds):
+        self._seconds = seconds
+
+    def __call__(self, p, **kwargs):
+        time.sleep(self._seconds)
+
+
 filename = '/tmp/test_keybox.gpg'
 passphrase = 'secret'
 expect_password_options = ExpectPasswordOptions()
@@ -152,7 +167,8 @@ expect_password_options = ExpectPasswordOptions()
 @pytest.yield_fixture()
 def spawn_keys():
     p = ptyprocess.PtyProcessUnicode.spawn(
-        [sys.executable, "-m", "keys", "-f", filename, '--no-memlock'],
+        [sys.executable, "-m", "keys", "-f", filename,
+         '--no-memlock', '--timeout', '1'],
         echo=False)
     yield p
     p.close(force=True)
@@ -175,7 +191,7 @@ def run_script(p, script):
             break
         cmd(p, poll=poll, line=len(script) - len(script_copy))
 
-    poll.poll(1000)
+    time.sleep(0.1)
     assert not p.isalive()
 
 
@@ -193,10 +209,11 @@ def test_shell(spawn_keys):
         # Shell completer
         Expect("> "),
         Send("\t\t"),
-        Expect("add      delete   list     nowrite  quit     select   "
-              "count    help     modify   print    reset    write    "),
+        Expect("add      delete   list     nowrite  quit     select   \n"
+               "count    help     modify   print    reset    write    "),
         Send("m\t \t\t"),
-        Expect("mtime     note      password  site      tags      url       user"),
+        Expect("mtime     note      password  site      tags      url       "
+               "user"),
         Send("pa\t \tblah\n"),
         Expect("No record selected. See `help select`."),
         # Add command
@@ -251,6 +268,7 @@ def test_timeout(spawn_keys):
         Send(passphrase + "\n"),
         # Finish
         Expect("> "),
-        Send("q\n"),
+        Wait(1.1),
+        Expect("quit\nTimeout after 1 seconds."),
         None,
     ])

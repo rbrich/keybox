@@ -4,9 +4,8 @@ import fcntl
 import os
 
 from keys.memlock import memlock
-from keys.shell import ShellUI
 from keys.batch import KeyboxBatch
-from keys import pwgen
+from keys import pwgen, shell
 
 
 def parse_args():
@@ -24,7 +23,7 @@ def parse_args():
                          "to stdout")
 
     ap.add_argument('-f', dest='keybox_file',
-                    default=ShellUI.get_default_filename(),
+                    default=shell.ShellUI.get_default_filename(),
                     help="keybox file (default: %(default)s)")
     ap.add_argument('-r', dest="readonly", action='store_true',
                     help="open keybox in read-only mode")
@@ -34,6 +33,9 @@ def parse_args():
                     help="export: use this file instead of stdout")
     ap.add_argument('--no-memlock', action='store_true',
                     help="Do not try to lock memory")
+    ap.add_argument('--timeout', type=int, default=shell.SHELL_TIMEOUT_SECS,
+                    help="Save and quit when timeout expires "
+                         "(default: %(default)s)")
 
     # pwgen args
     ap.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
@@ -58,8 +60,9 @@ def parse_args():
 def cmd_shell(args):
     if not args.no_memlock:
         memlock()
-    shell = ShellUI(args.keybox_file)
-    shell.start(args.readonly)
+    shell.SHELL_TIMEOUT_SECS = args.timeout
+    shell_ui = shell.ShellUI(args.keybox_file)
+    shell_ui.start(args.readonly)
 
 
 def cmd_pwgen(args):

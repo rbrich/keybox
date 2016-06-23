@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(
-    name='keys',
+    name='keybox-keys',
     version='0.1',
     description='Storage for passwords, encrypted with GPG',
     author='Radek Brich',

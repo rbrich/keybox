@@ -11,7 +11,7 @@ from keys.compat import signature
 from keys.ui import BaseUI
 from keys import pwgen
 
-SHELL_TIMEOUT_SECS = 60 * 60  # 1 hour
+SHELL_TIMEOUT_SECS = 3600  # 1 hour
 
 
 def not_implemented(f):
