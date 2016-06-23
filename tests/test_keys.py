@@ -180,7 +180,7 @@ class TestUI(unittest.TestCase):
         self._script = [
             # open
             ("Opening file %r... " % self._filename, None),
-            ("File not found. Create new? [y/n] ", 'y'),
+            ("File not found. Create new? [Y/n] ", 'y'),
             ("Enter passphrase: ", self._passphrase),
             ("Re-enter passphrase: ", self._passphrase),
             # add
