@@ -307,8 +307,9 @@ class BaseUI:
     def _open_tmp(self):
         """Prepare tmp file for writing and lock it"""
         try:
-            os.makedirs(os.path.dirname(self._filename_tmp), 0o700,
-                        exist_ok=True)
+            dirname = os.path.dirname(self._filename_tmp)
+            if dirname.endswith('/.keys'):
+                os.makedirs(dirname, 0o700, exist_ok=True)
             self._wfile = open(self._filename_tmp, 'wb')
         except OSError as e:
             self._print("Warning: Can't open file for writing: %s" % e)

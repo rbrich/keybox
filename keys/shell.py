@@ -7,12 +7,7 @@ import textwrap
 import signal
 import sys
 
-try:
-    from inspect import signature
-except ImportError:
-    # Python 3.2 and older (pip3 install funcsigs)
-    from funcsigs import signature
-
+from keys.compat import signature
 from keys.ui import BaseUI
 from keys import pwgen
 
@@ -55,7 +50,7 @@ class BaseCompleter:
 
     @not_implemented
     def _display_matches(self, substitution, matches, longest_match_length):
-        pass
+        """Override this for custom matches display"""
 
     def _load_history(self):
         """Restore readline history to last state."""
@@ -310,7 +305,8 @@ class ShellUI(BaseUI):
             self._command_map[command] = (func, params)
 
     def _filter_commands(self, start_text):
-        return [name for name in self._commands if name.startswith(start_text)]
+        return sorted(name for name in self._commands
+                      if name.startswith(start_text))
 
     def _input(self, prompt=None):
         """Override input function to add some convenience."""

@@ -174,7 +174,7 @@ class TestKeybox(unittest.TestCase):
 class TestUI(unittest.TestCase):
 
     def setUp(self):
-        self._filename = '/tmp/test_keys.gpg'
+        self._filename = '/tmp/test_keybox.gpg'
         self._passphrase = 'secret'
         self._passphrase_b = 'newPASS'
         self._script = [
@@ -210,8 +210,8 @@ class TestUI(unittest.TestCase):
             ("Delete selected record? This cannot be taken back! [y/n] ", "y"),
             ("Record deleted.", None),
             # close
-            ("Changes saved to /tmp/test_keys.gpg.", None),
-            (0, 0),
+            ("Changes saved to /tmp/test_keybox.gpg.", None),
+            (None, None),
         ]
 
     def test_ui(self):
@@ -222,6 +222,7 @@ class TestUI(unittest.TestCase):
         ui._print = self._check_script
         # Simulate usage
         self.assertTrue(ui.open())
+        self.addCleanup(os.unlink, self._filename)
         ui.cmd_add()
         ui.cmd_list()
         ui.cmd_count()
@@ -233,12 +234,9 @@ class TestUI(unittest.TestCase):
         ui.cmd_print()
         ui.cmd_delete()
         ui.close()
-        # Clean up
-        os.unlink(self._filename)
 
     def _check_script(self, text, *_):
         expected, answer = self._script.pop(0)
-        if not expected:
-            raise AssertionError("No output expected, got %r." % text)
+        self.assertIsNotNone(expected, "No output expected, got %r." % text)
         self.assertEqual(str(text)[:40], expected[:40])
         return answer

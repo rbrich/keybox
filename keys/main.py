@@ -26,12 +26,14 @@ def parse_args():
     ap.add_argument('-f', dest='keybox_file',
                     default=ShellUI.get_default_filename(),
                     help="keybox file (default: %(default)s)")
-    ap.add_argument('-r', dest="readonly", action="store_true",
+    ap.add_argument('-r', dest="readonly", action='store_true',
                     help="open keybox in read-only mode")
     ap.add_argument('-i', dest='import_file', type=str, default='-',
                     help="import: use this file instead of stdin")
     ap.add_argument('-o', dest='export_file', type=str, default='-',
                     help="export: use this file instead of stdout")
+    ap.add_argument('--no-memlock', action='store_true',
+                    help="Do not try to lock memory")
 
     # pwgen args
     ap.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
@@ -54,7 +56,8 @@ def parse_args():
 
 
 def cmd_shell(args):
-    memlock()
+    if not args.no_memlock:
+        memlock()
     shell = ShellUI(args.keybox_file)
     shell.start(args.readonly)
 

@@ -1,3 +1,5 @@
+keybox.gpg
+
 __pycache__
 build/
 dist/
@@ -5,4 +7,4 @@ keys.egg-info/
 docs/_build/
 htmlcov/
 .coverage
-keybox.gpg
+.cache/
