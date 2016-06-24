@@ -197,15 +197,16 @@ def run_script(p, script):
 
 @pytest.mark.usefixtures("keybox_file")
 def test_shell(spawn_keys):
+    temp_pass = 'temporary_password'
     run_script(spawn_keys, [
         # Initialize
         Expect("Opening file %r... " % filename),
         Expect("File not found. Create new? [Y/n] "),
         Send("y\n"),
         Expect("Enter passphrase: "),
-        Send(passphrase + "\n"),
+        Send(temp_pass +"\n"),
         Expect("Re-enter passphrase: "),
-        Send(passphrase + "\n"),
+        Send(temp_pass + "\n"),
         # Shell completer
         Expect("> "),
         Send("\t\t"),
@@ -242,6 +243,10 @@ def test_shell(spawn_keys):
         Expect("> "),
         Send("c\n"),
         Expect("1"),
+        # Write
+        Expect("> "),
+        Send("w\n"),
+        Expect("Changes saved to %s." % filename),
         # Select
         Expect("> "),
         Send("s\n"),
@@ -250,6 +255,25 @@ def test_shell(spawn_keys):
         Expect("> "),
         Send("p\n"),
         Expect(expect_password_options.option, "6"),
+        # Reset
+        Expect("> "),
+        Send("reset\n"),
+        Expect("Enter current passphrase: "),
+        Send(temp_pass + "\n"),
+        Expect("Enter new passphrase: "),
+        Send(passphrase + "\n"),
+        Expect("Re-enter new passphrase: "),
+        Send(passphrase + "\n"),
+        # Is the password still okay after re-encryption?
+        Expect("> "),
+        Send("p\n"),
+        Expect(expect_password_options.option, "6"),
+        # Delete
+        Expect("> "),
+        Send("d\n"),
+        Expect("Delete selected record? This cannot be taken back! [y/n] "),
+        Send("y\n"),
+        Expect("Record deleted."),
         # Finish
         Expect("> "),
         SendControl("c"),

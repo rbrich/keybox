@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 
+import sys
 from setuptools import setup
+
+if sys.version_info.major == 3 and sys.version_info.minor <= 2:
+    # Require funcsigs for Python 3.2
+    requires = ['funcsigs']
+else:
+    requires = []
 
 setup(
     name='keybox-keys',
@@ -17,5 +24,6 @@ setup(
         ],
     },
     setup_requires=['pytest-runner'],
+    install_requires=requires,
     tests_require=['pytest', 'ptyprocess'],
 )

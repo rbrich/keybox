@@ -5,7 +5,6 @@ from keys.gpg import encrypt, decrypt
 from keys.record import Record, COLUMNS
 from keys.keybox import Keybox, KeyboxRecord
 from keys.fileformat import format_file, parse_file
-from keys.ui import BaseUI
 from keys import pwgen
 
 
@@ -169,74 +168,3 @@ class TestKeybox(unittest.TestCase):
         self.assertEqual(keybox.get_tags(), ['email', 'it', 'test', 'web'])
         # Clean up
         os.unlink(self._filename)
-
-
-class TestUI(unittest.TestCase):
-
-    def setUp(self):
-        self._filename = '/tmp/test_keybox.gpg'
-        self._passphrase = 'secret'
-        self._passphrase_b = 'newPASS'
-        self._script = [
-            # open
-            ("Opening file %r... " % self._filename, None),
-            ("File not found. Create new? [Y/n] ", 'y'),
-            ("Enter passphrase: ", self._passphrase),
-            ("Re-enter passphrase: ", self._passphrase),
-            # add
-            ("User:     ", 'jackinthebox'),
-            ("Password: ", 'pa$$w0rD'),
-            ("Site:     ", 'Example'),
-            ("URL:      ", 'http://example.com/'),
-            ("Tags:     ", 'web test'),
-            ("Note:     ", ''),
-            # list
-            ("Example  jackinthebox  http://example.com/", None),
-            # count
-            ("1", None),
-            # write
-            ("Changes saved to %s." % self._filename, None),
-            # select
-            ("Example  jackoutofbox  http://example.com/", None),
-            # print
-            ("pa$$w0rD", None),
-            # reset
-            ("Enter current passphrase: ", self._passphrase),
-            ("Enter new passphrase: ", self._passphrase_b),
-            ("Re-enter new passphrase: ", self._passphrase_b),
-            # print
-            ("pa$$w0rD", None),
-            # delete
-            ("Delete selected record? This cannot be taken back! [y/n] ", "y"),
-            ("Record deleted.", None),
-            # close
-            ("Changes saved to /tmp/test_keybox.gpg.", None),
-            (None, None),
-        ]
-
-    def test_ui(self):
-        ui = BaseUI(self._filename)
-        # Install hooks
-        ui._input = self._check_script
-        ui._input_pass = self._check_script
-        ui._print = self._check_script
-        # Simulate usage
-        self.assertTrue(ui.open())
-        self.addCleanup(os.unlink, self._filename)
-        ui.cmd_add()
-        ui.cmd_list()
-        ui.cmd_count()
-        ui.cmd_write()
-        ui.cmd_modify('user', 'jackoutofbox')
-        ui.cmd_select('Example')
-        ui.cmd_print()
-        ui.cmd_reset()
-        ui.cmd_print()
-        ui.cmd_delete()
-        ui.close()
-
-    def _check_script(self, text, *_):
-        expected, answer = self._script.pop(0)
-        self.assertIsNotNone(expected, "No output expected, got %r." % text)
-        self.assertEqual(str(text)[:40], expected[:40])
-        return answer
