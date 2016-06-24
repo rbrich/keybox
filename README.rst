@@ -93,3 +93,18 @@ It can be installed from pypy (``pip3 install funcsigs``).
 Call ``make zipapp32`` to also embed funcsigs source into zipapp file.
 
 .. [#zipapp] https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format
+
+
+Development
+^^^^^^^^^^^
+
+Run tests::
+
+    make test
+
+Show test code coverage::
+
+    make htmlcov
+
+.. image:: https://travis-ci.org/rbrich/keys.svg?branch=master
+    :target: https://travis-ci.org/rbrich/keys
