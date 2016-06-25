@@ -1,6 +1,5 @@
 import sys
 import os
-import re
 import time
 
 import pexpect
@@ -24,9 +23,10 @@ class Expect:
             expected = self._expected(*self._args)
         else:
             expected = self._expected
-        if not self._regex:
-            expected = re.escape(expected)
-        p.expect(expected)
+        if self._regex:
+            p.expect(expected)
+        else:
+            p.expect_exact(expected)
         assert p.before.strip('\r\n') == ''
 
     def __repr__(self):

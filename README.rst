@@ -34,7 +34,7 @@ Dependencies:
 
 - POSIX OS
 - GPG
-- Python 3.2 or later (Python 3.3 recommended)
+- Python 3.3 or later
 
 
 Installation
@@ -85,12 +85,12 @@ See :mod:`keys.pwgen` for more information.
 Static Distribution
 ^^^^^^^^^^^^^^^^^^^
 
-Call ``make`` to create [#zipapp]_ file containing all sources. Zipapp file
-is written to ``dist`` directory and is directly executable by Python.
+Call ``make zipapp`` to create [#zipapp]_ file containing all sources.
+Zipapp file is written to ``dist`` directory and is directly executable
+by Python.
 
-Additional requirement for Python 3.2 is ``funcsigs`` package.
-It can be installed from pypy (``pip3 install funcsigs``).
-Call ``make zipapp32`` to also embed funcsigs source into zipapp file.
+The make target uses ``zipapp`` module which is available since Python 3.5.
+When created, the zipapp archive is executable by Python 3.3.
 
 .. [#zipapp] https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format
 

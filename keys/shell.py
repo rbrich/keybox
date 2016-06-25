@@ -6,8 +6,8 @@ import readline
 import textwrap
 import signal
 import sys
+from inspect import signature
 
-from keys.compat import signature
 from keys.ui import BaseUI
 from keys import pwgen
 
