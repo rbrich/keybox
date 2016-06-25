@@ -25,5 +25,5 @@ setup(
     },
     setup_requires=['pytest-runner'],
     install_requires=requires,
-    tests_require=['pytest', 'ptyprocess'],
+    tests_require=['pytest', 'pexpect'],
 )

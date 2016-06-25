@@ -1,130 +1,52 @@
 import sys
 import os
 import re
-import select
 import time
 
-import ptyprocess
+import pexpect
 import pytest
 
 
-class ExpectBase:
+class Expect:
 
-    def __call__(self, p, *, poll, line, **kwargs):
-        # Read shell output
-        rest = getattr(p, '_Expect_unread', None)
-        self.init()
-        if rest:
-            self.fill(rest)
-            rest = None
-        while self.more():
-            events = poll.poll(2000)
-            assert len(events), "Timeout while waiting for shell output, " \
-                                "expected: %r (line %s)" % \
-                                (self, line)
-            for fd, event in events:
-                assert fd == p.fileno()
-                assert event & select.POLLIN
-                event -= select.POLLIN
-                try:
-                    text = p.read()
-                    if not text:
-                        continue
-                    rest = self.fill(text)
-                except EOFError:
-                    event |= select.POLLHUP
-                assert not event or event == select.POLLHUP
-                if event & select.POLLHUP:
-                    assert not self.more(), "Expected more output from shell"
-                    break
-        self.check()
-        p._Expect_unread = rest
-
-    def init(self):
-        """To be overriden"""
-
-    def more(self):
-        """To be overriden"""
-        return False
-
-    def fill(self, text):
-        """To be overriden"""
-
-    def check(self):
-        """To be overriden"""
-
-
-class Expect(ExpectBase):
-
-    def __init__(self, expected, args=None):
+    def __init__(self, expected, args=None, regex=False):
         """`expected` is either string or callable with optional `args`
 
-        The callable is evaluated in :meth:`init`.
+        Unless `regex` is enabled, the `expected` string is matched as-is (raw).
 
         """
         self._expected = expected
         self._args = args
-        self._got = ''
+        self._regex = regex
 
-    def init(self):
+    def __call__(self, p):
         if callable(self._expected):
-            self._expected = self._expected(*self._args)
-
-    def more(self):
-        return len(self._got) < len(self._expected)
-
-    def fill(self, text):
-        self._got += text.replace('\r\n', '\n')
-
-    def check(self):
-        assert str(self._expected).strip('\n') == self._got.strip('\n'), \
-            "Script expected %r, got %r" % (self._expected, self._got)
+            expected = self._expected(*self._args)
+        else:
+            expected = self._expected
+        if not self._regex:
+            expected = re.escape(expected)
+        p.expect(expected)
+        assert p.before.strip('\r\n') == ''
 
     def __repr__(self):
-        return "%s(expected=%r, got=%r)"\
-               % (self.__class__.__name__, self._expected, self._got)
+        return "%s(%r)" % (self.__class__.__name__, self._expected)
 
 
-class ExpectMatch(Expect):
-
-    def __init__(self, pattern):
-        super().__init__(pattern)
-
-    def check(self):
-        m = re.match(self._expected, self._got)
-        assert m is not None
-
-
-class ExpectPasswordOptions(ExpectBase):
+class ExpectPasswordOptions:
 
     def __init__(self):
         self._options = {}
-        self._rest = ''
 
-    def more(self):
-        return len(self._options) < 20
-
-    def fill(self, text):
-        text = self._rest + text
-        self._rest = ''
-        while '\r\n' in text:
-            line, text = text.split('\r\n', 1)
-            if not line:
-                continue
-            for item in line.split('   '):
-                assert ': ' in item, "Unexpected password completer line: %r" \
-                                     % item
-                shortcut, password = item.split(': ')
-                assert len(shortcut) == 1, "Expecting 1 char as shortcut"
-                self._options[shortcut] = password
-        if not self.more():
-            return text
-        else:
-            self._rest = text
-
-    def check(self):
+    def __call__(self, p):
+        p.expect(10 * "([0-9]): (\S{16})   ([a-j]): (\S+)\r\n")
+        assert p.before.strip('\r\n') == ''
+        groups = p.match.groups()
+        assert len(groups) == 40
+        self._options = {shortcut: password
+                         for shortcut, password
+                         in zip(groups[::2], groups[1::2])}
         assert len(self._options) == 20
-        assert len(self._rest) == 0
 
     def option(self, shortcut):
         assert shortcut in self._options
@@ -136,7 +58,7 @@ class Send:
     def __init__(self, text):
         self._text = text
 
-    def __call__(self, p, **kwargs):
+    def __call__(self, p):
         p.write(self._text)
         p.flush()
 
@@ -146,7 +68,7 @@ class SendControl:
     def __init__(self, char):
         self._char = char
 
-    def __call__(self, p, **kwargs):
+    def __call__(self, p):
         p.sendcontrol(self._char)
 
 
@@ -165,11 +87,11 @@ expect_password_options = ExpectPasswordOptions()
 
 
 @pytest.yield_fixture()
-def spawn_keys():
-    p = ptyprocess.PtyProcessUnicode.spawn(
-        [sys.executable, "-m", "keys", "-f", filename,
-         '--no-memlock', '--timeout', '1'],
-        echo=False)
+def spawn_shell():
+    p = pexpect.spawn(sys.executable,
+                      ["-m", "keys", "-f", filename,
+                       '--no-memlock', '--timeout', '1'],
+                      echo=False, timeout=2, encoding='utf8')
     yield p
     p.close(force=True)
 
@@ -182,35 +104,29 @@ def keybox_file():
 
 def run_script(p, script):
     # Use copy of script, let original script unmodified
-    script_copy = script[:]
-    poll = select.poll()
-    poll.register(p.fileno(), select.POLLIN)
-    while True:
-        cmd = script_copy.pop(0)
-        if cmd is None:
-            break
-        cmd(p, poll=poll, line=len(script) - len(script_copy))
-
+    for ln, cmd in enumerate(script):
+        print("[%d] %r" % (ln, cmd))
+        cmd(p)
     time.sleep(0.1)
     assert not p.isalive()
 
 
 @pytest.mark.usefixtures("keybox_file")
-def test_shell(spawn_keys):
+def test_shell(spawn_shell):
     temp_pass = 'temporary_password'
-    run_script(spawn_keys, [
+    run_script(spawn_shell, [
         # Initialize
-        Expect("Opening file %r... " % filename),
+        Expect("Opening file '%s'... \r\n" % filename),
         Expect("File not found. Create new? [Y/n] "),
         Send("y\n"),
         Expect("Enter passphrase: "),
-        Send(temp_pass +"\n"),
+        Send(temp_pass + "\n"),
         Expect("Re-enter passphrase: "),
         Send(temp_pass + "\n"),
         # Shell completer
-        Expect("> "),
+        Expect("> "),  # line 8
         Send("\t\t"),
-        Expect("add      delete   list     nowrite  quit     select   \n"
+        Expect("add      delete   list     nowrite  quit     select   \r\n"
                "count    help     modify   print    reset    write    "),
         Send("m\t \t\t"),
         Expect("mtime     note      password  site      tags      url       "
@@ -218,7 +134,7 @@ def test_shell(spawn_keys):
         Send("pa\t \tblah\n"),
         Expect("No record selected. See `help select`."),
         # Add command
-        Expect("> "),
+        Expect("> "),  # line 15
         Send("add\n"),
         Expect("User:     "),
         Send("\t\tjackinthebox\n"),
@@ -236,11 +152,13 @@ def test_shell(spawn_keys):
         Expect("Note:     "),
         Send("\n"),
         # List
-        Expect("> "),
+        Expect("> "),  # line 32
         Send("l\n"),
-        ExpectMatch("Example  jackinthebox  http://example.com/  web test  "),
+        Expect("Example  jackinthebox  http://example.com/  web test  "
+               "%s \d{2}:\d{2}:\d{2}    \r\n" % time.strftime("%F"),
+               regex=True),
         # Count
-        Expect("> "),
+        Expect("> "),  # line 35
         Send("c\n"),
         Expect("1"),
         # Write
@@ -250,7 +168,9 @@ def test_shell(spawn_keys):
         # Select
         Expect("> "),
         Send("s\n"),
-        ExpectMatch("Example  jackinthebox  http://example.com/  web test  "),
+        Expect("Example  jackinthebox  http://example.com/  web test  "
+               "%s \d{2}:\d{2}:\d{2}    \r\n" % time.strftime("%F"),
+               regex=True),
         # Print
         Expect("> "),
         Send("p\n"),
@@ -278,14 +198,14 @@ def test_shell(spawn_keys):
         Expect("> "),
         SendControl("c"),
         Expect("quit"),
-        Expect("Changes saved to /tmp/test_keybox.gpg."),
-        None,
+        Expect("Changes saved to %s." % filename),
     ])
 
 
 @pytest.mark.usefixtures("keybox_file")
-def test_timeout(spawn_keys):
-    run_script(spawn_keys, [
+def test_timeout(spawn_shell):
+    """Uses file created by test_shell, must be called after it!"""
+    run_script(spawn_shell, [
         # Initialize
         Expect("Opening file %r... " % filename),
         Expect("Passphrase: "),
@@ -293,6 +213,5 @@ def test_timeout(spawn_keys):
         # Finish
         Expect("> "),
         Wait(1.1),
-        Expect("quit\nTimeout after 1 seconds."),
-        None,
+        Expect("quit\r\nTimeout after 1 seconds."),
     ])
