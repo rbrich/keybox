@@ -9,8 +9,9 @@ import itertools
 import os.path
 import fcntl
 
-from keys.stringutil import contains
 from keys.keybox import Keybox
+from keys.stringutil import contains
+from keys.editor import InlineEditor
 
 DATA_DIR = '~/.keys'
 DEFAULT_FILENAME = 'keybox.gpg'
@@ -243,13 +244,18 @@ class BaseUI:
     def cmd_modify(self, column, value=None):
         """Modify selected record
 
-        When no `value` given, delete current value.
+        When no `value` given, delete current value or enter multi-line editor
+        (in case of password).
 
         """
         candidates = self._keybox.get_columns(column)
         if len(candidates) != 1:
             return self._print('Unknown column:', column)
         column = candidates[0]
+        if column == "password" and value is None:
+            # Multi-line editor
+            print("[F10/Escape] Finish  [Ctrl-C] Cancel")
+            value = InlineEditor().edit(self._selected_record[column])
         self._selected_record[column] = value
 
     @with_write_access

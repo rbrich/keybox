@@ -3,5 +3,5 @@ python:
   - "3.3"
   - "3.5"
   - "nightly" # currently points to 3.6-dev
-install: "pip install funcsigs"
+install: "pip install blessed"
 script: "make test"

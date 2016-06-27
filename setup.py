@@ -17,6 +17,6 @@ setup(
         ],
     },
     setup_requires=['pytest-runner'],
-    install_requires=[],
+    install_requires=['blessed'],
     tests_require=['pytest', 'pexpect'],
 )
