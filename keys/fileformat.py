@@ -42,7 +42,7 @@ def parse_record(data: str, columns: tuple) -> Record:
     return Record(zip(columns, values))
 
 
-def read_file(stream) -> (list, tuple):
+def read_file(stream) -> tuple:
     """Read header and records from text stream."""
     line = stream.readline()
     columns = parse_header(line)
@@ -50,7 +50,7 @@ def read_file(stream) -> (list, tuple):
     return records, columns
 
 
-def parse_file(data: str) -> (list, tuple):
+def parse_file(data: str) -> tuple:
     """Parse whole file (header and records) from string."""
     stream = io.StringIO(data)
     return read_file(stream)

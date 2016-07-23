@@ -28,7 +28,7 @@ Portability:
 
 - The script should run on any system with Python3 and GPG installed.
 - Requires no installation. You can bring your keys with you anywhere.
-- Can be contained in single Python file (see Distribution_ bellow)
+- Can be contained in single Python file (see `Static Distribution`_ bellow)
 
 Dependencies:
 
@@ -76,8 +76,6 @@ By default, it makes password from two concatenated words, one uppercase letter,
 one digit and one punctuation character.
 
 This gives around 50 bits of entropy on my system. [#wiki]_
-
-See :mod:`keys.pwgen` for more information.
 
 .. [#wiki] http://en.wikipedia.org/wiki/Password_strength
 
