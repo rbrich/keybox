@@ -62,6 +62,9 @@ class Send:
         p.write(self._text)
         p.flush()
 
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self._text)
+
 
 class SendControl:
 
@@ -71,6 +74,9 @@ class SendControl:
     def __call__(self, p):
         p.sendcontrol(self._char)
 
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self._char)
+
 
 class Wait:
 
@@ -79,6 +85,9 @@ class Wait:
 
     def __call__(self, p, **kwargs):
         time.sleep(self._seconds)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self._seconds)
 
 
 filename = '/tmp/test_keybox.gpg'
@@ -126,8 +135,8 @@ def test_shell(spawn_shell):
         # Shell completer
         Expect("> "),  # line 8
         Send("\t\t"),
-        Expect("add      delete   list     nowrite  quit     select   \r\n"
-               "count    help     modify   print    reset    write    "),
+        Expect("((add|check|count|delete|help|list|modify|nowrite|print|quit|"
+               "reset|select|write)\s+){13}", regex=True),
         Send("m\t \t\t"),
         Expect("mtime     note      password  site      tags      url       "
                "user"),
@@ -159,7 +168,7 @@ def test_shell(spawn_shell):
                regex=True),
         # Count
         Expect("> "),  # line 35
-        Send("c\n"),
+        Send("co\n"),
         Expect("1"),
         # Write
         Expect("> "),
@@ -188,6 +197,9 @@ def test_shell(spawn_shell):
         Expect("> "),
         Send("p\n"),
         Expect(expect_password_options.option, "6"),
+        # Check
+        Expect("> "),
+        Send("ch\n"),
         # Delete
         Expect("> "),
         Send("d\n"),

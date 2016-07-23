@@ -3,7 +3,9 @@ python:
   - "3.3"
   - "3.5"
   - "nightly" # currently points to 3.6-dev
-install: "pip install blessed"
+install:
+  - pip install blessed
+  - pip install Sphinx
 script:
   - make test
   - make -C docs html
