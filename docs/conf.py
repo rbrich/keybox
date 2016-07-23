@@ -35,6 +35,9 @@ default_role = 'py:obj'
 
 pygments_style = 'sphinx'
 
+# Allow external images (eg. Travis-CI) - supported since Sphinx 1.4.2
+suppress_warnings = ['image.nonlocal_uri']
+
 
 # -- Options for HTML output ----------------------------------------------
 
