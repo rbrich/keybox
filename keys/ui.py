@@ -8,6 +8,7 @@ from collections import Counter
 import itertools
 import os.path
 import fcntl
+import sys
 
 from keys.keybox import Keybox
 from keys.stringutil import contains
@@ -57,10 +58,14 @@ class BaseUI:
         self._filename = filename or self.get_default_filename()
         #: We will write to temporary file to avoid data loss when write fails
         #: When write succeeds, the temp file will be moved to target file name
-        self._filename_tmp = filename + '.tmp'
+        self._filename_tmp = self._filename + '.tmp'
         self._wfile = None
         self._keybox = Keybox()
         self._selected_record = None  # Record
+
+    @property
+    def selected(self):
+        return self._selected_record
 
     ################
     # Open / Close #
@@ -68,14 +73,15 @@ class BaseUI:
 
     def open(self, readonly=False):
         self._expand_filename()
-        self._print("Opening file %r... " % self._filename)
+        self._print("Opening file %r... " % self._filename, end='')
         if os.path.exists(self._filename):
+            print()
             ok = self._open_existing()
             if ok and (readonly or not self._open_tmp()):
                 self._print("Open in read-only mode.")
         else:
+            print("Not found.")
             if readonly:
-                self._print("Error: File not found.")
                 return False
             ok = self._create_new()
             if ok and not self._open_tmp():
@@ -292,13 +298,13 @@ class BaseUI:
             self._keybox.set_passphrase(passphrase)
             with open(self._filename, 'rb') as f:
                 self._keybox.read(f)
-        except Exception as e:
+        except IOError as e:
             self._print(e)
             return False
         return True
 
     def _create_new(self):
-        ans = self._input("File not found. Create new? [Y/n] ")
+        ans = self._input("Create new keybox file? [Y/n] ")
         if len(ans) == 0 or ans.lower()[0] == 'y':
             passphrase = self._input_pass("Enter passphrase: ")
             passphrase_check = self._input_pass("Re-enter passphrase: ")
@@ -373,7 +379,8 @@ class BaseUI:
 
     def _print(self, *args, **kwargs):
         """Wrap print function to allow overriding."""
-        return print(*args, **kwargs)
+        print(*args, **kwargs)
+        sys.stdout.flush()
 
     def _input(self, prompt):
         """Wrap input function to allow overriding."""

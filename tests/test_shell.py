@@ -89,7 +89,7 @@ expect_password_options = ExpectPasswordOptions()
 @pytest.yield_fixture()
 def spawn_shell():
     p = pexpect.spawn(sys.executable,
-                      ["-m", "keys", "-f", filename,
+                      ["-m", "keys", "shell", "-f", filename,
                        '--no-memlock', '--timeout', '1'],
                       echo=False, timeout=2, encoding='utf8')
     yield p
@@ -116,8 +116,8 @@ def test_shell(spawn_shell):
     temp_pass = 'temporary_password'
     run_script(spawn_shell, [
         # Initialize
-        Expect("Opening file '%s'... \r\n" % filename),
-        Expect("File not found. Create new? [Y/n] "),
+        Expect("Opening file '%s'... Not found." % filename),
+        Expect("Create new keybox file? [Y/n] "),
         Send("y\n"),
         Expect("Enter passphrase: "),
         Send(temp_pass + "\n"),
