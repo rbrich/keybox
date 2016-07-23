@@ -54,7 +54,7 @@ class KeyboxRecord:
 
     def __getitem__(self, key):
         value = self._record[key]
-        if key == 'password':
+        if key == 'password' and value:
             value = self._keybox.decrypt_password(value)
         return value
 
@@ -99,6 +99,10 @@ class Keybox:
 
     def __len__(self):
         return len(self._records)
+
+    @property
+    def raw_records(self):
+        return self._records
 
     def set_passphrase(self, new_passphrase):
         """Set new passphrase to keybox and re-encrypt all record passwords."""

@@ -10,7 +10,7 @@ import os.path
 import fcntl
 import sys
 
-from keys.keybox import Keybox
+from keys.keybox import Keybox, KeyboxRecord
 from keys.stringutil import contains
 from keys.editor import InlineEditor
 
@@ -239,6 +239,18 @@ class BaseUI:
             # Skip empty values
             if key:
                 self._print(key.ljust(32), count, sep='')
+
+    def cmd_check(self):
+        """Check consistency of records
+
+        Each record is decrypted to check if the encryption is valid.
+
+        """
+        for raw_record in self._keybox.raw_records:
+            record = KeyboxRecord(self._keybox, raw_record)
+            if not raw_record['password']:
+                print("Warning: Empty passphrase:")
+                print(record)
 
     @with_selected_record
     def cmd_print(self):
