@@ -100,6 +100,14 @@ class ShellCompleter(BaseCompleter):
         """Complete cmd_modify args."""
         if len(completed_parts) == 1:
             return self._keybox.get_columns(text)
+        elif len(completed_parts) == 2:
+            candidates = self._keybox.get_columns(completed_parts[1])
+            if len(candidates) != 1:
+                return []
+            column = candidates[0]
+            if column == 'password':
+                return [pwgen.generate_passphrase()]
+            return []
         else:
             return []
 
