@@ -10,11 +10,11 @@ import os.path
 import fcntl
 import sys
 
-from keys.keybox import Keybox, KeyboxRecord
-from keys.stringutil import contains
-from keys.editor import InlineEditor
+from keybox.keybox import Keybox, KeyboxRecord
+from keybox.stringutil import contains
+from keybox.editor import InlineEditor
 
-DATA_DIR = '~/.keys'
+DATA_DIR = '~/.keybox'
 DEFAULT_FILENAME = 'keybox.gpg'
 
 
@@ -332,7 +332,7 @@ class BaseUI:
         """Prepare tmp file for writing and lock it"""
         try:
             dirname = os.path.dirname(self._filename_tmp)
-            if dirname.endswith('/.keys'):
+            if dirname.endswith('/.keybox'):
                 os.makedirs(dirname, 0o700, exist_ok=True)
             self._wfile = open(self._filename_tmp, 'wb')
         except OSError as e:

@@ -4,8 +4,8 @@
 
 import sys
 
-from keys.keybox import Keybox
-from keys.fileformat import write_file, read_file
+from keybox.keybox import Keybox
+from keybox.fileformat import write_file, read_file
 
 
 class KeyboxBatch(Keybox):

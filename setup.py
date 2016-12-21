@@ -3,17 +3,17 @@
 from setuptools import setup
 
 setup(
-    name='keybox-keys',
-    version='0.1',
+    name='keybox',
+    version='0.2',
     description='Storage for passwords, encrypted with GPG',
     author='Radek Brich',
     author_email='radek.brich@devl.cz',
     license='MIT',
-    url='https://github.com/rbrich/keys',
-    packages=['keys'],
+    url='https://github.com/rbrich/keybox',
+    packages=['keybox'],
     entry_points={
         'console_scripts': [
-            'keys = keys.main:main',
+            'keybox = keybox.main:main',
         ],
     },
     setup_requires=['pytest-runner'],

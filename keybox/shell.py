@@ -8,8 +8,8 @@ import signal
 import sys
 from inspect import signature
 
-from keys.ui import BaseUI
-from keys import pwgen
+from keybox.ui import BaseUI
+from keybox import pwgen
 
 SHELL_TIMEOUT_SECS = 3600  # 1 hour
 

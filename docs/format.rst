@@ -24,7 +24,7 @@ Import
 Batch import of passwords is supported via command line.
 
 - Format the data into tab-delimited file with header.
-- Header should contain subset or all of :data:`keys.record.COLUMNS`.
+- Header should contain subset or all of :data:`keybox.record.COLUMNS`.
 - Rest of lines should contain records with data according to header.
 
 Example import file::
@@ -39,9 +39,9 @@ and import the file:
 .. code-block:: sh
 
     $ # Import file
-    $ keys import -i import.recs
+    $ keybox import -i import.recs
     $ # Import output from other program
-    $ cat import.recs | keys import
+    $ cat import.recs | keybox import
 
 How to create keybox file using standard tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,7 +65,7 @@ Use export function to decrypt all data including passwords:
 
 .. code-block:: sh
 
-    $ keys export
+    $ keybox export
 
 This will print exported data to stdout, which can be directed to other
 programs. This is useful for conversion to other formats.

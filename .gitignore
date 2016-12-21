@@ -3,7 +3,7 @@ keybox.gpg
 __pycache__
 build/
 dist/
-keybox_keys.egg-info/
+keybox.egg-info/
 docs/_build/
 htmlcov/
 .coverage

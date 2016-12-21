@@ -7,4 +7,4 @@ Documentation Contents
    :maxdepth: 2
 
    format
-   keys
+   keybox

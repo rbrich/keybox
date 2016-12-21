@@ -17,13 +17,13 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'keys'
+project = 'keybox'
 copyright = '2015, Radek Brich'
 
 # The short X.Y version.
-version = '0.1'
+version = '0.2'
 # The full version, including alpha/beta/rc tags.
-release = '0.1'
+release = '0.2'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -48,7 +48,7 @@ html_theme_options = {
 }
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'keysdoc'
+htmlhelp_basename = 'keyboxdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -62,7 +62,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'keys.tex', 'Keybox manager', 'Radek Brich', 'manual'),
+    ('index', 'keybox.tex', 'Keybox manager', 'Radek Brich', 'manual'),
 ]
 
 # If false, no module index is generated.
@@ -74,6 +74,6 @@ latex_domain_indices = False
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'keys', 'Keybox manager', ['Radek Brich'], 1),
-    ('format', 'keys', 'Keybox file format', ['Radek Brich'], 5),
+    ('index', 'keybox', 'Keybox manager', ['Radek Brich'], 1),
+    ('format', 'keybox', 'Keybox file format', ['Radek Brich'], 5),
 ]

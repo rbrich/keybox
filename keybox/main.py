@@ -3,9 +3,9 @@ from getpass import getpass
 import fcntl
 import os
 
-from keys.memlock import memlock
-from keys.batch import KeyboxBatch
-from keys import pwgen, shell, ui
+from keybox.memlock import memlock
+from keybox.batch import KeyboxBatch
+from keybox import pwgen, shell, ui
 
 
 def run_print(keybox_file, filter_expr):
@@ -60,7 +60,7 @@ def run_export(keybox_file, export_file):
 
 def parse_args():
     """Process command line args."""
-    ap = argparse.ArgumentParser(prog="keys",
+    ap = argparse.ArgumentParser(prog="keybox",
                                  description="Keybox manager",
                                  formatter_class=argparse.RawTextHelpFormatter)
 

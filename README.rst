@@ -1,17 +1,18 @@
-====
-Keys
-====
+======
+Keybox
+======
 
 Introduction
 ------------
 
-Keys is a Python package with utilities for managing your passwords, keys
-and other secrets. It can be used directly from Python (``import keys``) or
-run as program (``python3 -m keys``, or just ``keys``).
+Keybox is a secure store for keys, passwords and other secrets.
 
-Unlike most password managers, this is completely offline. All your secrets
-stay safe in local file. Nothing is sent anywhere, unless you explicitly
-set up network synchronization using some other tool.
+There is Python API (``import keybox``), a runnable package (``python3 -m keybox``)
+and wrapper script (``keybox``, created by setuptools).
+
+Keybox is completely offline. All secrets stay safe in local file.
+Nothing is sent anywhere, unless you explicitly set up network synchronization
+using some other tool.
 
 Features:
 
@@ -27,7 +28,7 @@ Security:
 Portability:
 
 - The script should run on any system with Python3 and GPG installed.
-- Requires no installation. You can bring your keys with you anywhere.
+- Requires no installation. You can bring your keybox with you anywhere.
 - Can be contained in single Python file (see `Static Distribution`_ bellow)
 
 Dependencies:
@@ -40,13 +41,17 @@ Dependencies:
 Installation
 ^^^^^^^^^^^^
 
-Install Python package together with ``keys`` script::
+Install Python package together with ``keybox`` script::
 
     python3 setup.py install
 
-The package can also be run directly::
+The package can be run directly, without installation::
 
-    python3 -m keys
+    python3 -m keybox
+
+Dependencies::
+
+    /usr/share/dict/words (for pwgen, provided by ``wamerican`` on Debian)
 
 
 Getting Started
@@ -68,7 +73,7 @@ See **help** for list of all commands.
 Password Generator
 ^^^^^^^^^^^^^^^^^^
 
-Bundled password generator can be called from command line (``keys pwgen``)
+Bundled password generator can be called from command line (``keybox pwgen``)
 or internally from shell. Try ``<tab>`` when asked for password (add command).
 
 Pwgen is based on system word list usually found in ``/usr/share/dict/words``.
@@ -104,5 +109,5 @@ Show test code coverage::
 
     make htmlcov
 
-.. image:: https://travis-ci.org/rbrich/keys.svg?branch=master
-    :target: https://travis-ci.org/rbrich/keys
+.. image:: https://travis-ci.org/rbrich/keybox.svg?branch=master
+    :target: https://travis-ci.org/rbrich/keybox

@@ -6,9 +6,9 @@ import base64
 import time
 import itertools
 
-from keys.gpg import encrypt, decrypt
-from keys.record import Record, COLUMNS
-from keys.fileformat import format_file, parse_file
+from keybox.gpg import encrypt, decrypt
+from keybox.record import Record, COLUMNS
+from keybox.fileformat import format_file, parse_file
 
 
 class KeyboxRecord:

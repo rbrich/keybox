@@ -98,7 +98,7 @@ expect_password_options = ExpectPasswordOptions()
 @pytest.yield_fixture()
 def spawn_shell():
     p = pexpect.spawn(sys.executable,
-                      ["-m", "keys", "shell", "-f", filename,
+                      ["-m", "keybox", "shell", "-f", filename,
                        '--no-memlock', '--timeout', '1'],
                       echo=False, timeout=2, encoding='utf8')
     yield p

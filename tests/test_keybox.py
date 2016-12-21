@@ -1,11 +1,11 @@
 import unittest
 import os
 
-from keys.gpg import encrypt, decrypt
-from keys.record import Record, COLUMNS
-from keys.keybox import Keybox, KeyboxRecord
-from keys.fileformat import format_file, parse_file
-from keys import pwgen
+from keybox.gpg import encrypt, decrypt
+from keybox.record import Record, COLUMNS
+from keybox.keybox import Keybox, KeyboxRecord
+from keybox.fileformat import format_file, parse_file
+from keybox import pwgen
 
 
 class TestPasswordGenerator(unittest.TestCase):
@@ -137,7 +137,7 @@ class TestKeybox(unittest.TestCase):
             'note': 'This is example record.',
             'password': 'pa$$w0rD',
         }
-        self._filename = '/tmp/test_keys.gpg'
+        self._filename = '/tmp/test_keybox.gpg'
         self._passphrase = 'secret'
 
     def test_write_read(self):
