@@ -41,7 +41,11 @@ Dependencies:
 Installation
 ^^^^^^^^^^^^
 
-Install Python package together with ``keybox`` script::
+Install Python package together with ``keybox`` script, from PyPI::
+
+    pip3 install keybox
+
+Or from source::
 
     python3 setup.py install
 
