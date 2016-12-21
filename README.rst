@@ -35,7 +35,7 @@ Dependencies:
 
 - POSIX OS
 - GPG
-- Python 3.3 or later
+- Python 3.4 or later
 
 
 Installation
@@ -93,7 +93,7 @@ Zipapp file is written to ``dist`` directory and is directly executable
 by Python.
 
 The make target uses ``zipapp`` module which is available since Python 3.5.
-When created, the zipapp archive is executable by Python 3.3.
+When created, the zipapp archive is executable by older interpreters (Python 3.4).
 
 .. [#zipapp] https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format
 

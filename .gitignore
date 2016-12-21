@@ -8,3 +8,4 @@ docs/_build/
 htmlcov/
 .coverage
 .cache/
+.eggs/
