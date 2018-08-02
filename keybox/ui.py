@@ -288,6 +288,28 @@ class BaseUI:
         self._selected_record = None
         self._print("Record deleted.")
 
+    def cmd_export(self, filename='-'):
+        """Export all records to plain-text format.
+
+        The export will include decrypted passwords!
+
+        """
+        if filename == '-':
+            self._keybox.export_file(sys.stdout)
+        else:
+            with open(filename, 'w', encoding='utf-8') as f:
+                self._keybox.export_file(f)
+
+    def cmd_import(self, filename='-'):
+        """Import non-identical records from plain-text format"""
+        if filename == '-':
+            num_total, num_ok = self._keybox.import_file(sys.stdin)
+        else:
+            with open(filename, 'r', encoding='utf-8') as f:
+                num_total, num_ok = self._keybox.import_file(f)
+        print("%d records imported (%d duplicates)."
+              % (num_ok, num_total - num_ok))
+
     ################
     # File Utility #
     ################

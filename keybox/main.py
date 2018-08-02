@@ -1,10 +1,6 @@
 import argparse
-from getpass import getpass
-import fcntl
-import os
 
 from keybox.memlock import memlock
-from keybox.batch import KeyboxBatch
 from keybox import pwgen, shell, ui
 
 
@@ -34,28 +30,19 @@ def run_pwgen(length, words, upper, digits, special):
               sep='   ')
 
 
-def run_import(keybox_file, import_file):
-    passphrase = getpass('Passphrase:')
-    keybox = KeyboxBatch(passphrase)
-    with open(keybox_file, 'rb') as f:
-        keybox.read(f)
-    num_total, num_ok = keybox.import_file(import_file)
-    print("%d records imported (%d duplicates)."
-          % (num_ok, num_total - num_ok))
-    if num_ok > 0:
-        filename_tmp = keybox_file + '.tmp'
-        with open(filename_tmp, 'wb') as f:
-            fcntl.lockf(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            keybox.write(f)
-            os.rename(filename_tmp, keybox_file)
-
-
 def run_export(keybox_file, export_file):
-    passphrase = getpass('Passphrase:')
-    keybox = KeyboxBatch(passphrase)
-    with open(keybox_file, 'rb') as f:
-        keybox.read(f)
-    keybox.export_file(export_file)
+    base_ui = ui.BaseUI(keybox_file)
+    if not base_ui.open(readonly=True):
+        return
+    base_ui.cmd_export(export_file)
+
+
+def run_import(keybox_file, import_file):
+    base_ui = ui.BaseUI(keybox_file)
+    if not base_ui.open():
+        return
+    base_ui.cmd_import(import_file)
+    base_ui.close()
 
 
 def parse_args():
@@ -71,10 +58,10 @@ def parse_args():
     ap_shell.set_defaults(func=run_shell)
     ap_pwgen = sp.add_parser("pwgen", help="generate random password")
     ap_pwgen.set_defaults(func=run_pwgen)
-    ap_import = sp.add_parser("import", help="import formatted records")
-    ap_import.set_defaults(func=run_import)
     ap_export = sp.add_parser("export", help="export content of keybox file")
     ap_export.set_defaults(func=run_export)
+    ap_import = sp.add_parser("import", help="import formatted records")
+    ap_import.set_defaults(func=run_import)
     ap_print = sp.add_parser("print", aliases=['p'],
                              help="print key specified by pattern")
     ap_print.set_defaults(func=run_print)

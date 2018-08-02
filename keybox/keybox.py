@@ -8,7 +8,7 @@ import itertools
 
 from keybox.gpg import encrypt, decrypt
 from keybox.record import Record, COLUMNS
-from keybox.fileformat import format_file, parse_file
+from keybox.fileformat import format_file, parse_file, write_file, read_file
 
 
 class KeyboxRecord:
@@ -134,7 +134,7 @@ class Keybox:
         return [t for t in sorted(all_tags) if t.startswith(start_text)]
 
     def read(self, file):
-        """Read keybox records from `file`."""
+        """Read keybox records from encrypted `file`."""
         data = file.read()
         data = decrypt(data, self._passphrase).decode('utf-8')
         self._records, self._columns = parse_file(data)
@@ -142,13 +142,45 @@ class Keybox:
         self.recompute_widths()
 
     def write(self, file):
-        """Write keybox records to `file`."""
+        """Write keybox records to encrypted `file`."""
         data = format_file(self._records, self._columns).encode('utf-8')
         data = encrypt(data, self._passphrase)
         file.write(data)
         self._modified = False
         for record in self._records:
             record.modified = False
+
+    def export_file(self, file):
+        """Write keybox records to plain-text `file`."""
+        write_file(file, self, self._columns)
+
+    def import_file(self, file):
+        """Import non-identical records from plain-text `file`.
+
+        Checks all incoming records:
+        - identical records are skipped
+        - modified records are updated or added (see bellow)
+        - new records are added
+        - missing records - ignored
+
+        Modified records (TODO):
+        - same site and/or url
+        - same user
+        - different mtime
+        - options: keep local, replace with incoming, add incoming as new
+
+        """
+        records, columns = read_file(file)
+        assert set(columns).issubset(self._columns), \
+            'Unexpected column in header: %s' \
+            % (set(columns) - set(self._columns))
+        imported = 0
+        for record in records:
+            if self._check_import(record):
+                self.add_record(**record)
+                self.touch()
+                imported += 1
+        return len(records), imported
 
     def touch(self):
         self._modified = True
@@ -198,3 +230,16 @@ class Keybox:
         new_width = len(value) + 2
         if new_width > self._column_widths.get(column, 0):
             self._column_widths[column] = new_width
+
+    def _check_import(self, new_record):
+        def cmp_with_new(rec):
+            # Test all columns but mtime and password
+            if all(rec[c] == new_record.get(c, '') for c in
+                   ('site', 'user', 'url', 'tags', 'note')):
+                # Everything same, now test the password too
+                password = self.decrypt_password(rec['password'])
+                if password == new_record['password']:
+                    return True
+            # One of tests failed, not same records
+            return False
+        return not any(cmp_with_new(record) for record in self._records)
