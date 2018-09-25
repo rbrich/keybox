@@ -11,7 +11,41 @@ from keybox.record import Record, COLUMNS
 from keybox.fileformat import format_file, parse_file, write_file, read_file
 
 
-class KeyboxRecord:
+class EncryptedRecord:
+
+    """Augmented record with special handling of password.
+
+    It needs Keybox instance for on-access password decryption.
+
+    """
+
+    def __init__(self, keybox, record: Record):
+        self._keybox = keybox
+        self._record = record
+
+    def __repr__(self):
+        a = ['{}={!r}'.format(column, self[column])
+             for column in self._record.get_columns()]
+        return "{}({})".format(self.__class__.__name__, ', '.join(a))
+
+    def __setitem__(self, key, value):
+        value = str(value) if value else ''
+        if key == 'password':
+            value = self._keybox.encrypt_password(value)
+        self._record[key] = value
+
+    def __getitem__(self, key):
+        value = self._record[key]
+        if key == 'password' and value:
+            value = self._keybox.decrypt_password(value)
+        return value
+
+    @property
+    def wrapped_record(self):
+        return self._record
+
+
+class KeyboxRecord(EncryptedRecord):
 
     """Augmented record with special handling of mtime, password and __str__.
 
@@ -26,8 +60,7 @@ class KeyboxRecord:
     """
 
     def __init__(self, keybox, record: Record):
-        self._keybox = keybox
-        self._record = record
+        EncryptedRecord.__init__(self, keybox, record)
         if not record['mtime']:
             self.touch()
         for key, value in record.items():
@@ -43,30 +76,18 @@ class KeyboxRecord:
         return ''.join(a)
 
     def __setitem__(self, key, value):
-        value = str(value) if value else ''
         if key == 'mtime':
             raise Exception('Cannot set mtime directly.')
-        if key == 'password':
-            value = self._keybox.encrypt_password(value)
-        self._record[key] = value
+        EncryptedRecord.__setitem__(self, key, value)
+        value = str(value) if value else ''
         self._keybox.update_width(key, value)
         self.touch()
-
-    def __getitem__(self, key):
-        value = self._record[key]
-        if key == 'password' and value:
-            value = self._keybox.decrypt_password(value)
-        return value
 
     def touch(self):
         mtime = time.strftime('%F %T')
         self._record['mtime'] = mtime
         self._keybox.update_width('mtime', mtime)
         self._keybox.touch()
-
-    @property
-    def wrapped_record(self):
-        return self._record
 
 
 class Keybox:
@@ -154,7 +175,7 @@ class Keybox:
         """Write keybox records to plain-text `file`."""
         write_file(file, self, self._columns)
 
-    def import_file(self, file):
+    def import_file(self, file, fn_resolve_matched_rec):
         """Import non-identical records from plain-text `file`.
 
         Checks all incoming records:
@@ -170,17 +191,44 @@ class Keybox:
         - options: keep local, replace with incoming, add incoming as new
 
         """
+        # Is the imported file encrypted?
+        # TODO
+        #
         records, columns = read_file(file)
         assert set(columns).issubset(self._columns), \
             'Unexpected column in header: %s' \
             % (set(columns) - set(self._columns))
-        imported = 0
-        for record in records:
-            if self._check_import(record):
-                self.add_record(**record)
+        n_new = 0
+        n_updated = 0
+        candidates = [EncryptedRecord(self, record) for record in self._records]
+        for n, new_rec in enumerate(records):
+            matched_recs, score = self._match_record(candidates, new_rec)
+            if score == 1.0:
+                assert len(matched_recs) == 1
+                candidates.remove(matched_recs[0])
+                continue
+            if not matched_recs or score < 0.5:
+                # new
+                print("new:", new_rec)
+                self.add_record(**new_rec)
                 self.touch()
-                imported += 1
-        return len(records), imported
+                n_new += 1
+                continue
+            # updated - give options
+            rec, resolution = fn_resolve_matched_rec(matched_recs, new_rec)
+            if resolution == 'replace':
+                for column in self._columns:
+                    rec[column] = new_rec[column]
+                candidates.remove(rec)
+                n_updated += 1
+                self.touch()
+            elif resolution == 'add':
+                self.add_record(**new_rec)
+                n_new += 1
+                self.touch()
+            else:
+                assert resolution == 'keep_local'
+        return len(records), n_new, n_updated
 
     def touch(self):
         self._modified = True
@@ -231,15 +279,23 @@ class Keybox:
         if new_width > self._column_widths.get(column, 0):
             self._column_widths[column] = new_width
 
-    def _check_import(self, new_record):
-        def cmp_with_new(rec):
-            # Test all columns but mtime and password
-            if all(rec[c] == new_record.get(c, '') for c in
-                   ('site', 'user', 'url', 'tags', 'note')):
-                # Everything same, now test the password too
-                password = self.decrypt_password(rec['password'])
-                if password == new_record['password']:
-                    return True
-            # One of tests failed, not same records
-            return False
-        return not any(cmp_with_new(record) for record in self._records)
+    def _match_record(self, candidates, other):
+        """Look for most similar record to `other`."""
+        def column_matches(name):
+            return rec[name] == other.get(name, '')
+        scored = []
+        min_score = 1
+        max_score = len(self._columns)
+        for rec in candidates:
+            score = 0
+            for column in self._columns:
+                if rec[column] == other.get(column, ''):
+                    score += 1
+            if score == max_score:
+                # Identical
+                return [rec], score / max_score
+            if score >= min_score:
+                min_score = score
+            scored.append((score, rec))
+        recs = [rec for score, rec in scored if score == min_score]
+        return recs, min_score / max_score

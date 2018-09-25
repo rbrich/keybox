@@ -302,13 +302,30 @@ class BaseUI:
 
     def cmd_import(self, filename='-'):
         """Import non-identical records from plain-text format"""
+        def cb(local_recs, new_rec):
+            for n, rec in enumerate(local_recs):
+                print('[%s] local:' % n, repr(rec))
+            print('new:  ', repr(new_rec))
+            while True:
+                ans = self._input("Replace [%s] / Add [a] / Keep local [k]: "
+                                  % ']['.join(str(n) for n
+                                              in range(1, len(local_recs)+1)))
+                if ans == 'a': return None, 'add'
+                if ans == 'k': return None, 'keep_local'
+                try:
+                    n = int(ans)
+                    if n < 1 or n > len(local_recs):
+                        continue
+                    return local_recs[n-1], 'replace'
+                except ValueError:
+                    continue
         if filename == '-':
-            num_total, num_ok = self._keybox.import_file(sys.stdin)
+            n_total, n_new, n_updated = self._keybox.import_file(sys.stdin, cb)
         else:
             with open(filename, 'r', encoding='utf-8') as f:
-                num_total, num_ok = self._keybox.import_file(f)
-        print("%d records imported (%d duplicates)."
-              % (num_ok, num_total - num_ok))
+                n_total, n_new, n_updated = self._keybox.import_file(f, cb)
+        print("checked %d records (%d new, %d updated, %d identical)"
+              % (n_total, n_new, n_updated, n_total - n_new - n_updated))
 
     ################
     # File Utility #
