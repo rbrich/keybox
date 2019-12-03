@@ -28,17 +28,17 @@ def load_wordlist() -> list:
     return words
 
 
-def generate_password(length: int=MIN_LENGTH) -> str:
+def generate_password(length: int = MIN_LENGTH) -> str:
     """Generate random password containing letters, digits and symbols."""
     charlist = string.ascii_letters + string.digits + string.punctuation
     return ''.join(random.choice(charlist) for _ in range(length))
 
 
-def generate_passphrase(num_words: int=NUM_WORDS,
-                        min_length: int=MIN_LENGTH,
-                        num_upper: int=NUM_UPPER,
-                        num_digits: int=NUM_DIGITS,
-                        num_special: int=NUM_SPECIAL) -> str:
+def generate_passphrase(num_words: int = NUM_WORDS,
+                        min_length: int = MIN_LENGTH,
+                        num_upper: int = NUM_UPPER,
+                        num_digits: int = NUM_DIGITS,
+                        num_special: int = NUM_SPECIAL) -> str:
     """Generate random passphrase, based on `num_words` dictionary words.
 
     The passphrase is peppered by making `num_upper` letters uppercase
