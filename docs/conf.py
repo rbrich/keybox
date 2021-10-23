@@ -4,7 +4,8 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath('..'))
+_project_dir = os.path.abspath('..')
+sys.path.insert(0, _project_dir)
 
 # -- General configuration ------------------------------------------------
 
@@ -18,12 +19,12 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'keybox'
-copyright = '2015, Radek Brich'
+copyright = '2015–2020, Radek Brich'
 
 # The short X.Y version.
-version = '0.2'
+version = open(_project_dir + '/VERSION', 'r').read().strip()
 # The full version, including alpha/beta/rc tags.
-release = '0.2'
+release = version
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='keybox',
-    version='0.3',
+    version=open('VERSION', 'r').read().strip(),
     description='Storage for passwords, encrypted with GPG',
     author='Radek Brich',
     author_email='radek.brich@devl.cz',
