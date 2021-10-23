@@ -6,6 +6,8 @@ dist/
 keybox.egg-info/
 docs/_build/
 htmlcov/
+venv/
 .coverage
 .cache/
 .eggs/
+.tox/

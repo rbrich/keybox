@@ -171,8 +171,8 @@ class Keybox:
         for record in self._records:
             record.modified = False
 
-    def export_file(self, file):
-        """Write keybox records to plain-text `file`."""
+    def dump_file(self, file):
+        """Write decrypted records to plain-text `file`."""
         write_file(file, self, self._columns)
 
     def import_file(self, file, fn_resolve_matched_rec):

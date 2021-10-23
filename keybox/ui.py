@@ -288,17 +288,17 @@ class BaseUI:
         self._selected_record = None
         self._print("Record deleted.")
 
-    def cmd_export(self, filename='-'):
-        """Export all records to plain-text format.
+    def cmd_dump(self, filename='-'):
+        """Dump all records to a plain-text file.
 
-        The export will include decrypted passwords!
+        The output file will contain decrypted passwords!
 
         """
         if filename == '-':
-            self._keybox.export_file(sys.stdout)
+            self._keybox.dump_file(sys.stdout)
         else:
             with open(filename, 'w', encoding='utf-8') as f:
-                self._keybox.export_file(f)
+                self._keybox.dump_file(f)
 
     def cmd_import(self, filename='-'):
         """Import non-identical records from plain-text format"""

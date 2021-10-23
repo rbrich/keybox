@@ -30,11 +30,11 @@ def run_pwgen(length, words, upper, digits, special):
               sep='   ')
 
 
-def run_export(keybox_file, export_file):
+def run_dump(keybox_file, output_file):
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
-    base_ui.cmd_export(export_file)
+    base_ui.cmd_dump(output_file)
 
 
 def run_import(keybox_file, import_file):
@@ -58,15 +58,15 @@ def parse_args():
     ap_shell.set_defaults(func=run_shell)
     ap_pwgen = sp.add_parser("pwgen", help="generate random password")
     ap_pwgen.set_defaults(func=run_pwgen)
-    ap_export = sp.add_parser("export", help="export content of keybox file")
-    ap_export.set_defaults(func=run_export)
+    ap_dump = sp.add_parser("dump", help="dump content of keybox file")
+    ap_dump.set_defaults(func=run_dump)
     ap_import = sp.add_parser("import", help="import formatted records")
     ap_import.set_defaults(func=run_import)
     ap_print = sp.add_parser("print", aliases=['p'],
                              help="print key specified by pattern")
     ap_print.set_defaults(func=run_print)
 
-    for subparser in (ap_shell, ap_import, ap_export, ap_print):
+    for subparser in (ap_shell, ap_import, ap_dump, ap_print):
         subparser.add_argument('-f', dest='keybox_file',
                                default=shell.ShellUI.get_default_filename(),
                                help="keybox file (default: %(default)s)")
@@ -81,8 +81,8 @@ def parse_args():
 
     ap_import.add_argument('-i', dest='import_file', type=str, default='-',
                            help="use this file instead of stdin")
-    ap_export.add_argument('-o', dest='export_file', type=str, default='-',
-                           help="export: use this file instead of stdout")
+    ap_dump.add_argument('-o', dest='output_file', type=str, default='-',
+                         help="use this file instead of stdout")
 
     ap_pwgen.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
                           help="pwgen: minimal length of password "
