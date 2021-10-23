@@ -8,7 +8,7 @@ import itertools
 
 from keybox.gpg import encrypt, decrypt
 from keybox.record import Record, COLUMNS
-from keybox.fileformat import format_file, parse_file, write_file, read_file
+from keybox.fileformat import format_file, parse_file, write_file
 
 
 class EncryptedRecord:
