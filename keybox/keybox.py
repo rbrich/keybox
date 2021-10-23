@@ -220,12 +220,12 @@ class Keybox:
         candidates = [EncryptedRecord(self, record) for record in self._records]
         for n, encrypted_rec in enumerate(records):
             new_rec = EncryptedRecord(self, encrypted_rec)
-            matched_recs, score = self._match_record(candidates, new_rec)
-            if score == 1.0:
+            matched_recs, exact = self._match_record(candidates, new_rec, 4)
+            if exact:
                 assert len(matched_recs) == 1
                 candidates.remove(matched_recs[0])
                 continue
-            if not matched_recs or score < 0.5:
+            if not matched_recs:
                 # new
                 print("new:", new_rec)
                 self.add_record(**new_rec.as_dict())
@@ -297,23 +297,36 @@ class Keybox:
         if new_width > self._column_widths.get(column, 0):
             self._column_widths[column] = new_width
 
-    def _match_record(self, candidates, other):
-        """Look for most similar record to `other`."""
-        def column_matches(name):
-            return rec[name] == other.get(name, '')
-        scored = []
-        min_score = 1
+    def _match_record(self, candidates, other, min_score):
+        """Look for most similar record to `other`.
+
+        :param min_score    Minimal number of matching columns
+        :returns (matching_recs, exact_match)
+
+        """
+        matching = []
         max_score = len(self._columns)
+        columns_without_password = tuple(c for c in self._columns if c != 'password')
         for rec in candidates:
             score = 0
-            for column in self._columns:
+            # compare all columns except password and check score against min_score
+            for column in columns_without_password:
                 if rec[column] == other.get(column, ''):
                     score += 1
+            if score + 1 < min_score:
+                continue
+            # optimization: compare password separately
+            # (many recs are skipped by previous check)
+            if rec['password'] == other['password']:
+                score += 1
+            if score < min_score:
+                continue
+            # identical record -> exact match
             if score == max_score:
-                # Identical
-                return [rec], score / max_score
-            if score >= min_score:
+                return [rec], True
+            # increase min_score, drop candidates under this level later
+            if score > min_score:
                 min_score = score
-            scored.append((score, rec))
-        recs = [rec for score, rec in scored if score == min_score]
-        return recs, min_score / max_score
+                matching.clear()
+            matching.append(rec)
+        return matching, False

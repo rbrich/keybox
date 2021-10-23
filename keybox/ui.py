@@ -312,18 +312,18 @@ class BaseUI:
         def resolve_cb(local_recs, new_rec):
             for n, rec in enumerate(local_recs):
                 print('[%s] local:' % n, repr(rec))
-            print('new:  ', repr(new_rec))
+            print('[*] new:  ', repr(new_rec))
             while True:
-                ans = self._input("Replace [%s] / Add [a] / Keep local [k]: "
+                ans = self._input("Replace [%s] / Add new [a] / Keep local [k]: "
                                   % ']['.join(str(n) for n
-                                              in range(1, len(local_recs)+1)))
+                                              in range(len(local_recs))))
                 if ans == 'a': return None, 'add'
                 if ans == 'k': return None, 'keep_local'
                 try:
                     n = int(ans)
-                    if n < 1 or n > len(local_recs):
+                    if n < 0 or n >= len(local_recs):
                         continue
-                    return local_recs[n-1], 'replace'
+                    return local_recs[n], 'replace'
                 except ValueError:
                     continue
 
