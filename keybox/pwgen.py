@@ -8,9 +8,9 @@ random = SystemRandom()
 
 MIN_LENGTH = 16
 NUM_WORDS = 2
-NUM_UPPER = 1
+NUM_UPPER = 2
 NUM_DIGITS = 1
-NUM_SPECIAL = 1
+NUM_SPECIAL = 0
 
 WORDLIST_PATH = '/usr/share/dict/words'
 
