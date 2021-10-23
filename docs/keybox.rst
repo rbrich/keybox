@@ -1,14 +1,6 @@
 keybox package
 ==============
 
-keybox.batch module
--------------------
-
-.. automodule:: keybox.batch
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 keybox.fileformat module
 ------------------------
 
