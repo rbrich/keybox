@@ -39,7 +39,7 @@ class ExpectPasswordOptions:
         self._options = {}
 
     def __call__(self, p):
-        p.expect(10 * "([0-9]): (\S{16})   ([a-j]): (\S+)\r\n")
+        p.expect(10 * "([0-9]): (\\S{16})   ([a-j]): (\\S+)\r\n")
         assert p.before.strip('\r\n') == ''
         groups = p.match.groups()
         assert len(groups) == 40
@@ -95,7 +95,7 @@ passphrase = 'secret'
 expect_password_options = ExpectPasswordOptions()
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def spawn_shell():
     p = pexpect.spawn(sys.executable,
                       ["-m", "keybox", "shell", "-f", filename,
@@ -105,7 +105,7 @@ def spawn_shell():
     p.close(force=True)
 
 
-@pytest.yield_fixture(scope="module")
+@pytest.fixture(scope="module")
 def keybox_file():
     yield
     os.unlink(filename)
@@ -135,8 +135,8 @@ def test_shell(spawn_shell):
         # Shell completer
         Expect("> "),  # line 8
         Send("\t\t"),
-        Expect("((add|check|count|delete|help|list|modify|nowrite|print|quit|"
-               "reset|select|write)\s+){13}", regex=True),
+        Expect("((add|check|count|delete|export|help|import|list|modify|nowrite|"
+               "print|quit|reset|select|write)\\s+){15}", regex=True),
         Send("m\t \t\t"),
         Expect("mtime     note      password  site      tags      url       "
                "user"),
@@ -164,7 +164,7 @@ def test_shell(spawn_shell):
         Expect("> "),  # line 32
         Send("l\n"),
         Expect("Example  jackinthebox  http://example.com/  web test  "
-               "%s \d{2}:\d{2}:\d{2}    \r\n" % time.strftime("%F"),
+               "%s \\d{2}:\\d{2}:\\d{2}    \r\n" % time.strftime("%F"),
                regex=True),
         # Count
         Expect("> "),  # line 35
@@ -178,7 +178,7 @@ def test_shell(spawn_shell):
         Expect("> "),
         Send("s\n"),
         Expect("Example  jackinthebox  http://example.com/  web test  "
-               "%s \d{2}:\d{2}:\d{2}    \r\n" % time.strftime("%F"),
+               "%s \\d{2}:\\d{2}:\\d{2}    \r\n" % time.strftime("%F"),
                regex=True),
         # Print
         Expect("> "),

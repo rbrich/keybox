@@ -17,7 +17,7 @@ class TestPasswordGenerator(unittest.TestCase):
             self.assertTrue(len(word) > 0)
 
     def test_generate_passphrase(self):
-        pw = pwgen.generate_passphrase()
+        pw = pwgen.generate_passphrase(num_upper=1, num_digits=1, num_special=1)
         self.assertIsInstance(pw, str)
         self.assertTrue(len(pw) >= pwgen.MIN_LENGTH)
         self.assertTrue(any(c.islower() for c in pw), "At least one lowercase")
