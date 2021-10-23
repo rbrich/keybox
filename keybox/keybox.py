@@ -193,7 +193,7 @@ class Keybox:
 
         Checks all incoming records:
         - identical records are skipped
-        - modified records are updated or added (see bellow)
+        - modified records are updated or added (see below)
         - new records are added
         - missing records - ignored
 

@@ -29,7 +29,7 @@ Portability:
 
 - The script should run on any system with Python3 and GPG installed.
 - Requires no installation. You can bring your keybox with you anywhere.
-- Can be contained in single Python file (see `Static Distribution`_ bellow)
+- Can be contained in single Python file (see `Static Distribution`_ below)
 
 Dependencies:
 
