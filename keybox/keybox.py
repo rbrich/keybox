@@ -40,6 +40,19 @@ class EncryptedRecord:
             value = self._keybox.decrypt_password(value)
         return value
 
+    def get(self, key, default=None):
+        value = self._record.get(key, default)
+        if key == 'password' and value:
+            value = self._keybox.decrypt_password(value)
+        return value
+
+    def as_dict(self):
+        d = dict(self._record)
+        pw = d.get('password')
+        if pw:
+            d['password'] = self._keybox.decrypt_password(pw)
+        return d
+
     @property
     def wrapped_record(self):
         return self._record
@@ -175,7 +188,7 @@ class Keybox:
         """Write decrypted records to plain-text `file`."""
         write_file(file, self, self._columns)
 
-    def import_file(self, file, fn_resolve_matched_rec):
+    def import_file(self, file, fn_passphrase, fn_resolve_matched_rec):
         """Import non-identical records from plain-text `file`.
 
         Checks all incoming records:
@@ -184,24 +197,29 @@ class Keybox:
         - new records are added
         - missing records - ignored
 
-        Modified records (TODO):
+        TODO: Modified records:
         - same site and/or url
         - same user
         - different mtime
         - options: keep local, replace with incoming, add incoming as new
 
         """
-        # Is the imported file encrypted?
-        # TODO
-        #
-        records, columns = read_file(file)
+        # decrypt and parse the input file
+        data = file.read()
+        passphrase = fn_passphrase()
+        if passphrase is None:
+            return
+        data = decrypt(data, passphrase).decode('utf-8')
+        records, columns = parse_file(data)
+
         assert set(columns).issubset(self._columns), \
             'Unexpected column in header: %s' \
             % (set(columns) - set(self._columns))
         n_new = 0
         n_updated = 0
         candidates = [EncryptedRecord(self, record) for record in self._records]
-        for n, new_rec in enumerate(records):
+        for n, encrypted_rec in enumerate(records):
+            new_rec = EncryptedRecord(self, encrypted_rec)
             matched_recs, score = self._match_record(candidates, new_rec)
             if score == 1.0:
                 assert len(matched_recs) == 1
@@ -210,7 +228,7 @@ class Keybox:
             if not matched_recs or score < 0.5:
                 # new
                 print("new:", new_rec)
-                self.add_record(**new_rec)
+                self.add_record(**new_rec.as_dict())
                 self.touch()
                 n_new += 1
                 continue
@@ -223,7 +241,7 @@ class Keybox:
                 n_updated += 1
                 self.touch()
             elif resolution == 'add':
-                self.add_record(**new_rec)
+                self.add_record(**new_rec.as_dict())
                 n_new += 1
                 self.touch()
             else:

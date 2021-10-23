@@ -60,7 +60,7 @@ def parse_args():
     ap_pwgen.set_defaults(func=run_pwgen)
     ap_dump = sp.add_parser("dump", help="dump content of keybox file")
     ap_dump.set_defaults(func=run_dump)
-    ap_import = sp.add_parser("import", help="import formatted records")
+    ap_import = sp.add_parser("import", help="import records from another keybox")
     ap_import.set_defaults(func=run_import)
     ap_print = sp.add_parser("print", aliases=['p'],
                              help="print key specified by pattern")
@@ -79,8 +79,8 @@ def parse_args():
                           help="Save and quit when timeout expires "
                                "(default: %(default)s)")
 
-    ap_import.add_argument('-i', dest='import_file', type=str, default='-',
-                           help="use this file instead of stdin")
+    ap_import.add_argument('import_file', type=str,
+                           help="keybox file to be imported ('-' for stdin)")
     ap_dump.add_argument('-o', dest='output_file', type=str, default='-',
                          help="use this file instead of stdout")
 

@@ -301,8 +301,15 @@ class BaseUI:
                 self._keybox.dump_file(f)
 
     def cmd_import(self, filename='-'):
-        """Import non-identical records from plain-text format"""
-        def cb(local_recs, new_rec):
+        """Import non-identical records from another keybox"""
+        def passphrase_cb():
+            try:
+                return self._input_pass("Passphrase: ")
+            except (KeyboardInterrupt, EOFError):
+                self._print()
+                return None
+
+        def resolve_cb(local_recs, new_rec):
             for n, rec in enumerate(local_recs):
                 print('[%s] local:' % n, repr(rec))
             print('new:  ', repr(new_rec))
@@ -319,13 +326,18 @@ class BaseUI:
                     return local_recs[n-1], 'replace'
                 except ValueError:
                     continue
+
+        def do_import(file):
+            n_total, n_new, n_updated = self._keybox.import_file(file, passphrase_cb, resolve_cb)
+            print("checked %d records (%d new, %d updated, %d identical)"
+                  % (n_total, n_new, n_updated, n_total - n_new - n_updated))
+
+        self._print("Opening input file %r... " % filename)
         if filename == '-':
-            n_total, n_new, n_updated = self._keybox.import_file(sys.stdin, cb)
+            do_import(sys.stdin.buffer)
         else:
-            with open(filename, 'r', encoding='utf-8') as f:
-                n_total, n_new, n_updated = self._keybox.import_file(f, cb)
-        print("checked %d records (%d new, %d updated, %d identical)"
-              % (n_total, n_new, n_updated, n_total - n_new - n_updated))
+            with open(filename, 'rb') as f:
+                do_import(f)
 
     ################
     # File Utility #
