@@ -288,20 +288,23 @@ class BaseUI:
         self._selected_record = None
         self._print("Record deleted.")
 
-    def cmd_dump(self, filename='-'):
-        """Dump all records to a plain-text file.
+    def cmd_export(self, filename='-', file_format='plain'):
+        """Export all records to a plain-text or JSON file.
 
         The output file will contain decrypted passwords!
 
         """
         if filename == '-':
-            self._keybox.dump_file(sys.stdout)
+            self._keybox.export_file(sys.stdout, file_format)
         else:
             with open(filename, 'w', encoding='utf-8') as f:
-                self._keybox.dump_file(f)
+                self._keybox.export_file(f, file_format)
 
-    def cmd_import(self, filename='-'):
+    def cmd_import(self, filename='-', file_format='keybox'):
         """Import non-identical records from another keybox"""
+        if file_format != 'keybox':
+            raise NotImplementedError(file_format + " import not implemented")
+
         def passphrase_cb():
             try:
                 return self._input_pass("Passphrase: ")

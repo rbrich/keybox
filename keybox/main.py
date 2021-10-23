@@ -30,18 +30,18 @@ def run_pwgen(length, words, upper, digits, special):
               sep='   ')
 
 
-def run_dump(keybox_file, output_file):
+def run_export(keybox_file, output_file, file_format):
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
-    base_ui.cmd_dump(output_file)
+    base_ui.cmd_export(output_file, file_format)
 
 
-def run_import(keybox_file, import_file):
+def run_import(keybox_file, import_file, file_format):
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open():
         return
-    base_ui.cmd_import(import_file)
+    base_ui.cmd_import(import_file, file_format)
     base_ui.close()
 
 
@@ -58,15 +58,15 @@ def parse_args():
     ap_shell.set_defaults(func=run_shell)
     ap_pwgen = sp.add_parser("pwgen", help="generate random password")
     ap_pwgen.set_defaults(func=run_pwgen)
-    ap_dump = sp.add_parser("dump", help="dump content of keybox file")
-    ap_dump.set_defaults(func=run_dump)
-    ap_import = sp.add_parser("import", help="import records from another keybox")
-    ap_import.set_defaults(func=run_import)
+    ap_export = sp.add_parser("export", help="export content of keybox file")
+    ap_export.set_defaults(func=run_export)
+    ap_import = sp.add_parser("import", help="import records from a file")
+    ap_import.set_defaults(func=run_import, file_format='keybox')
     ap_print = sp.add_parser("print", aliases=['p'],
                              help="print key specified by pattern")
     ap_print.set_defaults(func=run_print)
 
-    for subparser in (ap_shell, ap_import, ap_dump, ap_print):
+    for subparser in (ap_shell, ap_import, ap_export, ap_print):
         subparser.add_argument('-f', dest='keybox_file',
                                default=shell.ShellUI.get_default_filename(),
                                help="keybox file (default: %(default)s)")
@@ -80,9 +80,15 @@ def parse_args():
                                "(default: %(default)s)")
 
     ap_import.add_argument('import_file', type=str,
-                           help="keybox file to be imported ('-' for stdin)")
-    ap_dump.add_argument('-o', dest='output_file', type=str, default='-',
-                         help="use this file instead of stdout")
+                           help="the file to be imported ('-' for stdin)")
+    ap_export.add_argument('-o', dest='output_file', type=str, default='-',
+                           help="use this file instead of stdout")
+    for subparser in (ap_import, ap_export):
+        format_grp = subparser.add_mutually_exclusive_group(required=(subparser == ap_export))
+        format_grp.add_argument('--plain', dest='file_format', action='store_const', const='plain',
+                                help="select plain-text format")
+        format_grp.add_argument('--json', dest='file_format', action='store_const', const='json',
+                                help="select JSON format")
 
     ap_pwgen.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
                           help="pwgen: minimal length of password "

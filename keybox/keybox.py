@@ -9,6 +9,7 @@ import itertools
 from keybox.gpg import encrypt, decrypt
 from keybox.record import Record, COLUMNS
 from keybox.fileformat import format_file, parse_file, write_file
+from keybox.stringutil import nt_escape
 
 
 class EncryptedRecord:
@@ -103,6 +104,18 @@ class KeyboxRecord(EncryptedRecord):
         self._keybox.touch()
 
 
+class ExportRecord(EncryptedRecord):
+
+    def __init__(self, keybox, record: Record):
+        EncryptedRecord.__init__(self, keybox, record)
+
+    def __getitem__(self, key):
+        value = EncryptedRecord.__getitem__(self, key)
+        if key == 'password':
+            return nt_escape(value)
+        return value
+
+
 class Keybox:
 
     """Keybox file manager.
@@ -184,9 +197,13 @@ class Keybox:
         for record in self._records:
             record.modified = False
 
-    def dump_file(self, file):
+    def export_file(self, file, file_format):
         """Write decrypted records to plain-text `file`."""
-        write_file(file, self, self._columns)
+        if file_format == 'plain':
+            records = (ExportRecord(self, record) for record in self._records)
+            write_file(file, records, self._columns)
+        if file_format == 'json':
+            raise NotImplementedError("json export not implemented")
 
     def import_file(self, file, fn_passphrase, fn_resolve_matched_rec):
         """Import non-identical records from plain-text `file`.
