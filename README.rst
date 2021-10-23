@@ -113,5 +113,3 @@ Show test code coverage::
 
     make htmlcov
 
-.. image:: https://travis-ci.org/rbrich/keybox.svg?branch=master
-    :target: https://travis-ci.org/rbrich/keybox
