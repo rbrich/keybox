@@ -5,12 +5,12 @@ Keybox
 Introduction
 ------------
 
-Keybox is a secure store for keys, passwords and other secrets.
+Keybox is a secure store for passwords, keys, and other secrets.
 
-There is Python API (``import keybox``), a runnable package (``python3 -m keybox``)
-and wrapper script (``keybox``, created by setuptools).
+There is a Python API (``import keybox``), a runnable package (``python3 -m keybox``)
+and a wrapper script (``keybox``, created by setuptools).
 
-Keybox is completely offline. All secrets stay safe in local file.
+Keybox is completely offline. All secrets stay safely in a local file.
 Nothing is sent anywhere, unless you explicitly set up network synchronization
 using some other tool.
 
@@ -29,19 +29,20 @@ Portability:
 
 - The script should run on any system with Python3 and GPG installed.
 - Requires no installation. You can bring your keybox with you anywhere.
-- Can be contained in single Python file (see `Static Distribution`_ below)
+- Can be contained in a single Python file (see `Static Distribution`_ below)
 
 Dependencies:
 
 - POSIX OS
 - GPG
-- Python 3.4 or later
+- Python 3.6 or later
 
 
 Installation
-^^^^^^^^^^^^
+------------
 
-Install Python package together with ``keybox`` script, from PyPI::
+Install Python package together with the ``keybox`` wrapper script,
+from PyPI::
 
     pip3 install keybox
 
@@ -49,19 +50,28 @@ Or from source::
 
     python3 setup.py install
 
-The package can be run directly, without installation::
+The package can also be run directly, without installation::
 
     python3 -m keybox
 
-Dependencies::
+Dependencies:
 
-    /usr/share/dict/words (for pwgen, provided by ``wamerican`` on Debian)
+* ``/usr/share/dict/words``
 
+  - required for pwgen
+  - Debian: ``apt install wamerican``
+
+* `Python GPGME <https://wiki.python.org/moin/GnuPrivacyGuard#per_operating_system_install_instructions>`_
+
+  - Debian: ``apt install python3-gpg``
+  - macOS: ``brew install gpgme``
+
+* pytest, pexpect - for tests
 
 Getting Started
-^^^^^^^^^^^^^^^
+---------------
 
-Run the program, type master password. New keybox file will be created.
+Run the program, choose a master password. A new keybox file will be created.
 
 You are now in the shell. The basic workflow is as follows:
 
@@ -71,39 +81,40 @@ You are now in the shell. The basic workflow is as follows:
 - **print** the password
 - **quit**
 
-See **help** for list of all commands.
+Type **help** for a list of all commands.
 
 
 Password Generator
-^^^^^^^^^^^^^^^^^^
+------------------
 
-Bundled password generator can be called from command line (``keybox pwgen``)
-or internally from shell. Try ``<tab>`` when asked for password (add command).
+A bundled password generator can be called from command line (``keybox pwgen``)
+or internally from the shell.
+In the shell, try ``<tab>`` when asked for a password (in the ``add`` command).
 
-Pwgen is based on system word list usually found in ``/usr/share/dict/words``.
-By default, it makes password from two concatenated words, one uppercase letter,
-one digit and one punctuation character.
+Pwgen is based on the system word list that is usually found in ``/usr/share/dict/words``.
+By default, it generates a password from two concatenated words, altered by
+adding two uppercase letters and one digit somewhere inside the password.
 
-This gives around 50 bits of entropy on my system. [#wiki]_
-
-.. [#wiki] http://en.wikipedia.org/wiki/Password_strength
+This gives around 50 bits of entropy on my system
+(`Password strength <http://en.wikipedia.org/wiki/Password_strength>`_).
 
 
 Static Distribution
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
-Call ``make zipapp`` to create [#zipapp]_ file containing all sources.
-Zipapp file is written to ``dist`` directory and is directly executable
+Call ``make zipapp`` to create a `zipapp file <https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format>`_ containing all sources.
+The zipapp file is written to ``dist`` directory and is directly executable
 by Python.
 
 The make target uses ``zipapp`` module which is available since Python 3.5.
-When created, the zipapp archive is executable by older interpreters (Python 3.4).
-
-.. [#zipapp] https://docs.python.org/3.5/library/zipapp.html#the-python-zip-application-archive-format
 
 
 Development
-^^^^^^^^^^^
+-----------
+
+Build docs::
+
+    make -C docs html
 
 Run tests::
 
@@ -112,4 +123,3 @@ Run tests::
 Show test code coverage::
 
     make htmlcov
-
