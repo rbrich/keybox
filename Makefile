@@ -1,16 +1,20 @@
-DIST=dist
-TMPDIR=$(DIST)/zipapp.tmp
+BUILD=build
+VERSION=$(shell cat VERSION)
+ZIPAPP=$(BUILD)/zipapp
 
-.PHONY: zipapp test cov clean
-.DEFAULT: zipapp
+.PHONY: default zipapp test cov build check upload clean
 
-zipapp: $(DIST)/keybox.pyz
+build: dist/keybox-$(VERSION).tar.gz
+zipapp: $(BUILD)/keybox.pyz
 
-$(DIST)/keybox.pyz: keybox
-	rm -rf $(TMPDIR)
-	mkdir -p $(TMPDIR)/keybox
-	cp keybox/*.py $(TMPDIR)/keybox
-	python3 -m zipapp $(TMPDIR) -m 'keybox.main:main' -p '/usr/bin/env python3' -o $@
+dist/keybox-$(VERSION).tar.gz:
+	python3 setup.py sdist bdist_wheel
+
+$(BUILD)/keybox.pyz: keybox
+	rm -rf $(ZIPAPP)
+	mkdir -p $(ZIPAPP)/keybox
+	cp keybox/*.py $(ZIPAPP)/keybox
+	python3 -m zipapp $(ZIPAPP) -m 'keybox.main:main' -p '/usr/bin/env python3' -o $@
 
 test:
 	python3 setup.py pytest --addopts "tests/"
@@ -21,5 +25,11 @@ cov:
 htmlcov: cov
 	xdg-open htmlcov/index.html
 
+check: build
+	twine check dist/*
+
+upload: build
+	twine upload dist/*
+
 clean:
-	rm -rf $(DIST)
+	rm -rf $(BUILD) dist keybox.egg-info

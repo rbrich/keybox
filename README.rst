@@ -123,3 +123,8 @@ Run tests::
 Show test code coverage::
 
     make htmlcov
+
+Build and check package::
+
+    make build
+    make check
