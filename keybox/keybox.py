@@ -2,11 +2,11 @@
 # (keybox file manager)
 #
 
-import base64
 import time
 import itertools
 
-from keybox.gpg import encrypt, decrypt
+from keybox.envelope import Envelope
+from keybox.legacy_gpg import gpg_decrypt
 from keybox.record import Record, COLUMNS
 from keybox.fileformat import format_file, parse_file, write_file
 from keybox.stringutil import nt_escape
@@ -32,26 +32,26 @@ class EncryptedRecord:
     def __setitem__(self, key, value):
         value = str(value) if value else ''
         if key == 'password':
-            value = self._keybox.encrypt_password(value)
+            value = self._keybox.envelope.encrypt_base64(value)
         self._record[key] = value
 
     def __getitem__(self, key):
         value = self._record[key]
         if key == 'password' and value:
-            value = self._keybox.decrypt_password(value)
+            value = self._keybox.envelope.decrypt_base64(value)
         return value
 
     def get(self, key, default=None):
         value = self._record.get(key, default)
         if key == 'password' and value:
-            value = self._keybox.decrypt_password(value)
+            value = self._keybox.envelope.decrypt_base64(value)
         return value
 
     def as_dict(self):
         d = dict(self._record)
         pw = d.get('password')
         if pw:
-            d['password'] = self._keybox.decrypt_password(pw)
+            d['password'] = self._keybox.envelope.decrypt_base64(pw)
         return d
 
     @property
@@ -124,7 +124,7 @@ class Keybox:
 
     """
 
-    def __init__(self, passphrase=None):
+    def __init__(self):
         """Initialize the keybox, using `passphrase`.
 
         In next step, call `read` to read existing file
@@ -134,7 +134,7 @@ class Keybox:
         self._records = []
         self._columns = COLUMNS
         self._column_widths = {}
-        self._passphrase = passphrase
+        self._envelope = Envelope()
         #: Are there any unwritten changes?
         self._modified = False
 
@@ -148,19 +148,25 @@ class Keybox:
         return len(self._records)
 
     @property
+    def envelope(self):
+        return self._envelope
+
+    @property
     def raw_records(self):
         return self._records
 
     def set_passphrase(self, new_passphrase):
         """Set new passphrase to keybox and re-encrypt all record passwords."""
+        previous = self._envelope
+        self._envelope = Envelope()
+        self._envelope.set_passphrase(new_passphrase)
         for record in self._records:
-            password = self.decrypt_password(record['password'])
-            record['password'] = self.encrypt_password(password, new_passphrase)
-        self._passphrase = new_passphrase
+            password = previous.decrypt_base64(record['password'])
+            record['password'] = self._envelope.encrypt_base64(password)
         self._modified = True
 
     def check_passphrase(self, passphrase):
-        return self._passphrase == passphrase
+        return self._envelope.check_passphrase(passphrase)
 
     def get_columns(self, start_text=None):
         start_text = start_text.lower() or ''
@@ -180,19 +186,17 @@ class Keybox:
             record['tags'].split() for record in self._records))
         return [t for t in sorted(all_tags) if t.startswith(start_text)]
 
-    def read(self, file):
+    def read(self, file, passphrase_cb):
         """Read keybox records from encrypted `file`."""
-        data = file.read()
-        data = decrypt(data, self._passphrase).decode('utf-8')
-        self._records, self._columns = parse_file(data)
+        data = self._envelope.read(file, passphrase_cb)
+        self._records, self._columns = parse_file(data.decode('utf-8'))
         self._modified = False
         self.recompute_widths()
 
     def write(self, file):
         """Write keybox records to encrypted `file`."""
-        data = format_file(self._records, self._columns).encode('utf-8')
-        data = encrypt(data, self._passphrase)
-        file.write(data)
+        data = format_file(self._records, self._columns)
+        self._envelope.write(file, data.encode('utf-8'))
         self._modified = False
         for record in self._records:
             record.modified = False
@@ -226,7 +230,7 @@ class Keybox:
         passphrase = fn_passphrase()
         if passphrase is None:
             return
-        data = decrypt(data, passphrase).decode('utf-8')
+        data = gpg_decrypt(data, passphrase).decode('utf-8')
         records, columns = parse_file(data)
 
         assert set(columns).issubset(self._columns), \
@@ -281,7 +285,7 @@ class Keybox:
         password = kwargs.pop('password', '')
         record = Record(columns=self._columns, **kwargs)
         if password:
-            record['password'] = self.encrypt_password(password)
+            record['password'] = self._envelope.encrypt_base64(password)
         self._records.append(record)
         return KeyboxRecord(self, record)
 
@@ -289,18 +293,6 @@ class Keybox:
         """Delete record previously obtained by other methods."""
         self._records.remove(record.wrapped_record)
         self._modified = True
-
-    def decrypt_password(self, password_data: str):
-        """Decrypt and return password from record."""
-        data = base64.b64decode(password_data.encode(), validate=True)
-        return decrypt(data, self._passphrase).decode()
-
-    def encrypt_password(self, password: str, encrypt_passphrase=None):
-        """Encrypt the password and return it."""
-        data = encrypt(password.encode(),
-                       encrypt_passphrase or self._passphrase,
-                       s2k_count=0)
-        return base64.b64encode(data).decode()
 
     def recompute_widths(self):
         for column in self._columns:

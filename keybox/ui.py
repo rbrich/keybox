@@ -15,7 +15,7 @@ from keybox.stringutil import contains
 from keybox.editor import InlineEditor
 
 DATA_DIR = '~/.keybox'
-DEFAULT_FILENAME = 'keybox.gpg'
+DEFAULT_FILENAME = 'keybox.kb'
 
 
 def with_write_access(func):
@@ -356,14 +356,12 @@ class BaseUI:
 
     def _open_existing(self):
         try:
-            passphrase = self._input_pass("Passphrase: ")
-        except (KeyboardInterrupt, EOFError):
-            self._print()
-            return False
-        try:
-            self._keybox.set_passphrase(passphrase)
             with open(self._filename, 'rb') as f:
-                self._keybox.read(f)
+                try:
+                    self._keybox.read(f, lambda: self._input_pass("Passphrase: "))
+                except (KeyboardInterrupt, EOFError):  # thrown from _input_pass
+                    self._print()
+                    return False
         except IOError as e:
             self._print(e)
             return False

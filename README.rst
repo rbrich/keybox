@@ -16,7 +16,7 @@ using some other tool.
 
 Features:
 
-- Data encrypted using strong encryption (GPG file)
+- Data encrypted using strong encryption (PyNaCl)
 - Simple tab-delimited file format
 - Shell-like text user interface
 
@@ -27,15 +27,15 @@ Security:
 
 Portability:
 
-- The script should run on any system with Python3 and GPG installed.
+- The script should run on any system with Python3 installed.
 - Requires no installation. You can bring your keybox with you anywhere.
 - Can be contained in a single Python file (see `Static Distribution`_ below)
 
 Dependencies:
 
 - POSIX OS
-- GPG
 - Python 3.6 or later
+- PyNaCl
 
 
 Installation
@@ -46,7 +46,9 @@ from PyPI::
 
     pip3 install keybox
 
-Or from source::
+That's it. PIP should pull in the required dependencies.
+
+Alternatively, install from source::
 
     python3 setup.py install
 
@@ -61,10 +63,7 @@ Dependencies:
   - required for pwgen
   - Debian: ``apt install wamerican``
 
-* `Python GPGME <https://wiki.python.org/moin/GnuPrivacyGuard#per_operating_system_install_instructions>`_
-
-  - Debian: ``apt install python3-gpg``
-  - macOS: ``brew install gpgme``
+* `pynacl <https://pynacl.readthedocs.io/en/latest/install/>`_
 
 * pytest, pexpect - for tests
 

@@ -1,7 +1,8 @@
 import unittest
 import os
+import nacl.exceptions
 
-from keybox.gpg import encrypt, decrypt
+from keybox.envelope import Envelope
 from keybox.record import Record, COLUMNS
 from keybox.keybox import Keybox, KeyboxRecord
 from keybox.fileformat import format_file, parse_file
@@ -34,8 +35,10 @@ class TestPasswordGenerator(unittest.TestCase):
 class TestCrypt(unittest.TestCase):
 
     def _encrypt_decrypt(self, data, pp):
-        encdata = encrypt(data, pp)
-        decdata = decrypt(encdata, pp)
+        envelope = Envelope()
+        envelope.set_passphrase(pp)
+        encdata = envelope.encrypt(data)
+        decdata = envelope.decrypt(encdata)
         self.assertEqual(data, decdata)
 
     def test_crypt(self):
@@ -47,8 +50,12 @@ class TestCrypt(unittest.TestCase):
 
     def test_wrong_passphrase(self):
         data = b'test'
-        encdata = encrypt(data, 'a')
-        self.assertRaises(Exception, decrypt, encdata, 'b')
+        env1 = Envelope()
+        env1.set_passphrase('a')
+        encdata = env1.encrypt(data)
+        env2 = Envelope()
+        env2.set_passphrase('b')
+        self.assertRaises(Exception, env2.decrypt, encdata)
 
 
 class TestRecord(unittest.TestCase):
@@ -110,7 +117,7 @@ class TestFormat(unittest.TestCase):
 class TestKeyboxRecord(unittest.TestCase):
 
     def test_mtime(self):
-        keybox = Keybox('/tmp/x')
+        keybox = Keybox()
         # Make empty record
         record = Record()
         record_proxy = KeyboxRecord(keybox, record)
@@ -142,7 +149,8 @@ class TestKeybox(unittest.TestCase):
 
     def test_write_read(self):
         # Write
-        keybox = Keybox(self._passphrase)
+        keybox = Keybox()
+        keybox.set_passphrase(self._passphrase)
         for i in range(128):
             record = keybox.add_record(**self._sample)
             record['site'] += str(i)
@@ -152,9 +160,9 @@ class TestKeybox(unittest.TestCase):
             keybox.write(f)
         del keybox
         # Read
-        keybox = Keybox(self._passphrase)
+        keybox = Keybox()
         with open(self._filename, 'rb') as f:
-            keybox.read(f)
+            keybox.read(f, lambda: self._passphrase)
         record = keybox[10]
         self.assertTrue(record['mtime'])
         self.assertEqual(record['site'], self._sample['site'] + '10')
@@ -168,3 +176,38 @@ class TestKeybox(unittest.TestCase):
         self.assertEqual(keybox.get_tags(), ['email', 'it', 'test', 'web'])
         # Clean up
         os.unlink(self._filename)
+
+    def test_master_password_change(self):
+        # Write
+        keybox = Keybox()
+        keybox.set_passphrase(self._passphrase)
+        keybox.add_record(**self._sample)
+        keybox.set_passphrase(self._passphrase + '2')
+        with open(self._filename, 'wb') as f:
+            keybox.write(f)
+        del keybox
+        # Read
+        keybox = Keybox()
+        with open(self._filename, 'rb') as f:
+            keybox.read(f, lambda: self._passphrase + '2')
+        record = keybox[0].as_dict()
+        del record['mtime']
+        self.assertEqual(record, self._sample)
+        # Change passphrase
+        keybox.set_passphrase(self._passphrase + '3')
+        record = keybox[0].as_dict()
+        del record['mtime']
+        self.assertEqual(record, self._sample)
+        with open(self._filename, 'wb') as f:
+            keybox.write(f)
+        del keybox
+        # Read with old passphrase
+        keybox = Keybox()
+        with open(self._filename, 'rb') as f:
+            self.assertRaises(nacl.exceptions.CryptoError, keybox.read, f, lambda: self._passphrase)
+        # Read with new passphrase
+        with open(self._filename, 'rb') as f:
+            keybox.read(f, lambda: self._passphrase + '3')
+        record = keybox[0].as_dict()
+        del record['mtime']
+        self.assertEqual(record, self._sample)
