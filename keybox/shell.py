@@ -25,7 +25,7 @@ def not_implemented(f):
 
 class BaseCompleter:
 
-    def __init__(self, history: list=None, delims=' '):
+    def __init__(self, history: list = None, delims=' '):
         self._prompt = ''
         self._history = history or []
         self._delims = delims

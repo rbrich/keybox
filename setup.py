@@ -15,12 +15,13 @@ setup(
     license='MIT',
     url='https://github.com/rbrich/keybox',
     packages=['keybox'],
+    include_package_data=True,
     entry_points={
         'console_scripts': [
             'keybox = keybox.main:main',
         ],
     },
     setup_requires=['pytest-runner'],
-    install_requires=['blessed'],
+    install_requires=['pynacl', 'blessed'],
     tests_require=['pytest', 'pexpect'],
 )

@@ -127,3 +127,13 @@ Build and check package::
 
     make build
     make check
+
+
+The Project Name
+----------------
+
+There might be some confusion between this Keybox project and GnuPG project,
+which has something called "a keybox file (.kbx)" and a tool to handle it,
+`kbxutil <https://www.gnupg.org/documentation/manuals/gnupg/kbxutil.html>`_.
+
+This Keybox is completely unrelated to the GnuPG one.
