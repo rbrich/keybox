@@ -6,7 +6,7 @@ import time
 import itertools
 
 from keybox.envelope import Envelope
-from keybox.legacy_gpg import gpg_decrypt
+from keybox.envelope_gpg import EnvelopeGPG
 from keybox.record import Record, COLUMNS
 from keybox.fileformat import format_file, parse_file, write_file
 from keybox.stringutil import nt_escape
@@ -226,12 +226,15 @@ class Keybox:
 
         """
         # decrypt and parse the input file
-        data = file.read()
-        passphrase = fn_passphrase()
-        if passphrase is None:
-            return
-        data = gpg_decrypt(data, passphrase).decode('utf-8')
-        records, columns = parse_file(data)
+        input_envelope = EnvelopeGPG()
+        data = input_envelope.read(file, fn_passphrase)
+        records, columns = parse_file(data.decode('utf-8'))
+
+        # fake Keybox object for input file
+        class FakeKeybox:
+            pass
+        input_keybox = FakeKeybox()
+        input_keybox.envelope = input_envelope
 
         assert set(columns).issubset(self._columns), \
             'Unexpected column in header: %s' \
@@ -240,7 +243,7 @@ class Keybox:
         n_updated = 0
         candidates = [EncryptedRecord(self, record) for record in self._records]
         for n, encrypted_rec in enumerate(records):
-            new_rec = EncryptedRecord(self, encrypted_rec)
+            new_rec = EncryptedRecord(input_keybox, encrypted_rec)
             matched_recs, exact = self._match_record(candidates, new_rec, 4)
             if exact:
                 assert len(matched_recs) == 1

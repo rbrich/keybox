@@ -305,12 +305,15 @@ class BaseUI:
         if file_format != 'keybox':
             raise NotImplementedError(file_format + " import not implemented")
 
+        class PassphraseCanceled(Exception):
+            pass
+
         def passphrase_cb():
             try:
                 return self._input_pass("Passphrase: ")
             except (KeyboardInterrupt, EOFError):
                 self._print()
-                return None
+                raise PassphraseCanceled()
 
         def resolve_cb(local_recs, new_rec):
             for n, rec in enumerate(local_recs):
@@ -331,9 +334,13 @@ class BaseUI:
                     continue
 
         def do_import(file):
-            n_total, n_new, n_updated = self._keybox.import_file(file, passphrase_cb, resolve_cb)
-            print("checked %d records (%d new, %d updated, %d identical)"
-                  % (n_total, n_new, n_updated, n_total - n_new - n_updated))
+            try:
+                n_total, n_new, n_updated = self._keybox.import_file(
+                    file, passphrase_cb, resolve_cb)
+                print("checked %d records (%d new, %d updated, %d identical)"
+                      % (n_total, n_new, n_updated, n_total - n_new - n_updated))
+            except PassphraseCanceled:
+                pass
 
         self._print("Opening input file %r... " % filename)
         if filename == '-':
