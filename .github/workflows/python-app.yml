@@ -26,9 +26,9 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y python3-wheel wamerican
+        sudo apt-get install --no-install-recommends -y wamerican
         python -m pip install --upgrade pip
-        pip install flake8 twine
+        pip install flake8 twine wheel
         pip install -r requirements.txt -r test-requirements.txt -r docs/requirements.txt
     - name: Lint with flake8
       run: |
