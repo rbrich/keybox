@@ -5,6 +5,7 @@ import nacl.pwhash
 import nacl.utils
 import nacl.secret
 import base64
+import zlib
 import struct
 from io import BytesIO
 
@@ -23,15 +24,20 @@ from io import BytesIO
 # 0 - END - terminates the chunk reading, allows extra data in the header
 #           (the chunk SIZE must follow, making the terminator a sequence of two zero bytes)
 # 1 - DATA_SIZE (u32) - size of encrypted data that follows the header
-# 2 - CIPHER (u8) - symmetric encryption algorithm:
-#              1 = XSalsa20 + Poly1305 MAC (default)
-# 3 - PWHASH (u8) - key derivation function:
-#              1 = scrypt
-#              2 = argon2i (default)
-#              3 = argon2id
-# 4 - SALT (str)
-# 5 - OPS_LIMIT (u8)
-# 6 - MEM_LIMIT (u32)
+# 2 - PLAIN_SIZE (u32) - size of plain data (decrypted and decompressed)
+# 3 - COMPRESSION (u8) - data can be compressed before being encrypted
+#               0 - no compression
+#               1 - zlib deflate, window bits = -15 (default)
+# 4 - CIPHER (u8) - symmetric encryption algorithm:
+#               1 = XSalsa20 + Poly1305 MAC (default)
+# 5 - PWHASH (u8) - key derivation function:
+#               1 = scrypt
+#               2 = argon2i (default)
+#               3 = argon2id
+# 6 - SALT (str)
+# 7 - OPS_LIMIT (u8) - PWHASH parameter (libsodium)
+# 8 - MEM_LIMIT (u32) - PWHASH parameter (libsodium)
+# 9 - CRC32 (u32) - checksum of plain data
 #
 # Types:
 # (u8, u16, u32, u64) unsigned integers, little endian
@@ -53,14 +59,18 @@ from io import BytesIO
 #         obliged to reject the file)
 
 MAGIC = b'[K]\0'  # nul byte marks the file as binary without depending on the content itself
+
 TAG_END = 0
 TAG_DATA_SIZE = 1
-TAG_CIPHER = 2
-TAG_PWHASH = 3
-TAG_SALT = 4
-TAG_OPS_LIMIT = 5
-TAG_MEM_LIMIT = 6
-CIPHER_XSALSA20_POLY1305 = 1
+TAG_PLAIN_SIZE = 2
+TAG_COMPRESSION = 3
+TAG_CIPHER = 4
+TAG_PWHASH = 5
+TAG_SALT = 6
+TAG_OPS_LIMIT = 7
+TAG_MEM_LIMIT = 8
+TAG_CRC32 = 9
+
 PWHASH_SCRYPT = 1
 PWHASH_ARGON2I = 2
 PWHASH_ARGON2ID = 3
@@ -68,6 +78,45 @@ PWHASH_MODULE = {
     PWHASH_SCRYPT: nacl.pwhash.scrypt,
     PWHASH_ARGON2I: nacl.pwhash.argon2i,
     PWHASH_ARGON2ID: nacl.pwhash.argon2id,
+}
+
+CIPHER_XSALSA20_POLY1305 = 1
+
+
+class NoopCompressor:
+
+    id = 0
+
+    @staticmethod
+    def compress(data: bytes) -> bytes:
+        return data
+
+    @staticmethod
+    def decompress(data: bytes, _plain_size=-1) -> bytes:
+        return data
+
+
+class DeflateCompressor:
+
+    id = 1
+
+    @staticmethod
+    def compress(data: bytes) -> bytes:
+        c = zlib.compressobj(level=9, wbits=-15, memLevel=9)
+        out = BytesIO()
+        out.write(c.compress(data))
+        out.write(c.flush())
+        return out.getvalue()
+
+    @staticmethod
+    def decompress(data: bytes, plain_size=-1) -> bytes:
+        return zlib.decompress(data, wbits=-15,
+                               bufsize=zlib.DEF_BUF_SIZE if plain_size == -1 else plain_size)
+
+
+COMPRESSION_MODULE = {
+    NoopCompressor.id: NoopCompressor,
+    DeflateCompressor.id: DeflateCompressor,
 }
 
 
@@ -78,6 +127,7 @@ class Envelope:
         self._pwhash_algo = PWHASH_ARGON2I
         self._pwhash = nacl.pwhash.argon2i
         self._sym_algo = nacl.secret.SecretBox
+        self._compressor = DeflateCompressor
         self._box = None
         self._key = None
         self._salt = nacl.utils.random(self._pwhash.SALTBYTES)
@@ -96,29 +146,37 @@ class Envelope:
         f.write(struct.pack('B', len(value)))
         f.write(value)
 
-    def write_header(self, f, data_size: int):
+    def write_header(self, f, data_size: int, plain_size: int, crc32: int):
         chunks = BytesIO()
-        self._write_chunk(chunks, TAG_DATA_SIZE, struct.pack('<I', data_size))
+        self._write_chunk(chunks, TAG_DATA_SIZE, struct.pack('<L', data_size))
+        self._write_chunk(chunks, TAG_PLAIN_SIZE, struct.pack('<L', plain_size))
+        self._write_chunk(chunks, TAG_COMPRESSION, struct.pack('<B', self._compressor.id))
         self._write_chunk(chunks, TAG_CIPHER, struct.pack('<B', CIPHER_XSALSA20_POLY1305))
         self._write_chunk(chunks, TAG_PWHASH, struct.pack('<B', self._pwhash_algo))
         self._write_chunk(chunks, TAG_SALT, self._salt)
         self._write_chunk(chunks, TAG_OPS_LIMIT, struct.pack('<B', self._ops_limit))
-        self._write_chunk(chunks, TAG_MEM_LIMIT, struct.pack('<I', self._mem_limit))
+        self._write_chunk(chunks, TAG_MEM_LIMIT, struct.pack('<L', self._mem_limit))
+        self._write_chunk(chunks, TAG_CRC32, struct.pack('<L', crc32))
         meta_data = chunks.getvalue()
-        meta_size = struct.pack('<I', len(meta_data))
+        meta_size = struct.pack('<L', len(meta_data))
         f.write(MAGIC)
         f.write(meta_size)
         f.write(meta_data)
 
-    def read_header(self, f) -> int:
+    def read_header(self, f) -> tuple:
         """Load header (metadata) from stream `f`
-        :returns data_size - Size of the encrypted data in bytes,
+        :returns (data_size, plain_size)
+                 data_size - Size of the encrypted data in bytes,
+                             or -1 if not available (the chunk is optional)
+                 plain_size - Size of the decrypted and decompressed data in bytes,
                              or -1 if not available (the chunk is optional)
         """
         assert f.read(4) == MAGIC
-        meta_size = struct.unpack('<I', f.read(4))[0]
+        meta_size = struct.unpack('<L', f.read(4))[0]
         meta_data = f.read(meta_size)
         data_size = -1
+        plain_size = -1
+        crc32 = None
         chunks = BytesIO(meta_data)
 
         def unpack_uint(v):
@@ -139,6 +197,11 @@ class Envelope:
             value = chunks.read(size)
             if tag == TAG_DATA_SIZE:
                 data_size = unpack_uint(value)
+            elif tag == TAG_PLAIN_SIZE:
+                plain_size = unpack_uint(value)
+            elif tag == TAG_COMPRESSION:
+                key = unpack_uint(value)
+                self._compressor = COMPRESSION_MODULE[key]
             elif tag == TAG_CIPHER:
                 assert unpack_uint(value) == CIPHER_XSALSA20_POLY1305
             elif tag == TAG_PWHASH:
@@ -150,10 +213,12 @@ class Envelope:
                 self._ops_limit = unpack_uint(value)
             elif tag == TAG_MEM_LIMIT:
                 self._mem_limit = unpack_uint(value)
+            elif tag == TAG_CRC32:
+                crc32 = unpack_uint(value)
             else:
                 print(f"WARNING: File contains unknown chunk with tag {tag}, size {size}. "
                       "It might be created by future version of keybox program. Please update...")
-        return data_size
+        return data_size, plain_size, crc32
 
     def set_passphrase(self, passphrase: str):
         """Derive a key from `passphrase`"""
@@ -166,9 +231,12 @@ class Envelope:
 
     def write(self, f, data: bytes):
         """Complete encryption, writes header + encrypted data to stream `f`"""
-        encrypted = self.encrypt(data)
-        self.write_header(f, len(encrypted))
-        f.write(encrypted)
+        crc32 = zlib.crc32(data)
+        plain_size = len(data)
+        data = self._compressor.compress(data)
+        data = self.encrypt(data)
+        self.write_header(f, len(data), plain_size, crc32)
+        f.write(data)
 
     def read(self, f, passphrase_cb) -> bytes:
         """Complete decryption, reads header, asks for passphrase, decrypts data
@@ -176,10 +244,15 @@ class Envelope:
         :param passphrase_cb    Called to ask passphrase, must return str
         :returns decrypted data
         """
-        data_size = self.read_header(f)
-        encrypted = f.read(data_size)
+        data_size, plain_size, crc32 = self.read_header(f)
+        data = f.read(data_size)
         self.set_passphrase(passphrase_cb())
-        return self.decrypt(encrypted)
+        data = self.decrypt(data)
+        data = self._compressor.decompress(data, plain_size)
+        assert plain_size == -1 or len(data) == plain_size
+        if crc32 is not None:
+            assert zlib.crc32(data) == crc32
+        return data
 
     def encrypt(self, data: bytes) -> bytes:
         """Raw encryption. Metadata are not saved."""
@@ -205,7 +278,7 @@ if __name__ == '__main__':
     def self_test():
         msg = "a message"
         pw = "test"
-        print("* Deriving key...")
+        print("* Derive key...")
         box = Envelope()
         box.set_passphrase(pw)
         print("* Encrypt a value...")
@@ -222,9 +295,8 @@ if __name__ == '__main__':
         enc3 = f.getvalue()
 
         import binascii
-        print(enc3)
         print(binascii.hexlify(enc3))
-        print("* Reset - deriving key...")
+        print("* Reset - decompress + derive key...")
         box = Envelope()
         f = BytesIO(enc3)
         assert box.read(f, lambda: pw).decode() == msg
