@@ -18,14 +18,14 @@ __all__ = (
 )
 
 # ordered by priority, the first one providing a function will be picked
-all_backend_names = ('argon2_cffi', 'pynacl', 'standard')
+all_backend_names = ('cryptoref', 'argon2_cffi', 'pynacl', 'standard')
 
 symbol_provided_by = {
     'ScryptParams': ('pynacl',),
     'scrypt': ('pynacl',),
     'Argon2Params': ('argon2_cffi', 'pynacl'),
     'argon2id': ('argon2_cffi', 'pynacl'),
-    'XSalsa20Poly1305': ('pynacl',),
+    'XSalsa20Poly1305': ('pynacl', 'cryptoref'),
     'noop_compress': ('standard',),
     'noop_decompress': ('standard',),
     'deflate_compress': ('standard',),

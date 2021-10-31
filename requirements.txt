@@ -1,3 +1,5 @@
 setuptools
+Cython
 pynacl
+argon2-cffi
 blessed

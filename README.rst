@@ -60,10 +60,12 @@ Dependencies:
 
 * ``/usr/share/dict/words``
 
-  - required for pwgen
-  - Debian: ``apt install wamerican``
+    - required for pwgen
+    - Debian: ``apt install wamerican``
 
 * `pynacl <https://pynacl.readthedocs.io/en/latest/install/>`_
+
+* argon2-cffi - optional, replaces argon2 from PyNaCl when available
 
 * pytest, pexpect - for tests
 

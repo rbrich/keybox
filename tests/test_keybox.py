@@ -204,7 +204,8 @@ class TestKeybox(unittest.TestCase):
         # Read with old passphrase
         keybox = Keybox()
         with open(self._filename, 'rb') as f:
-            self.assertRaises(nacl.exceptions.CryptoError, keybox.read, f, lambda: self._passphrase)
+            # FIXME: custom exception for authentication error
+            self.assertRaises(Exception, keybox.read, f, lambda: self._passphrase)
         # Read with new passphrase
         with open(self._filename, 'rb') as f:
             keybox.read(f, lambda: self._passphrase + '3')

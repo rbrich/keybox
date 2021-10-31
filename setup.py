@@ -2,6 +2,13 @@
 
 from setuptools import setup
 from pathlib import Path
+
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    def cythonize(*_args):
+        return []
+
 setup_dir = Path(__file__).parent
 
 setup(
@@ -21,7 +28,8 @@ setup(
             'keybox = keybox.main:main',
         ],
     },
-    setup_requires=['pytest-runner'],
+    ext_modules=cythonize('cryptoref/cryptoref.pyx'),
+    setup_requires=['pytest-runner', 'Cython'],
     install_requires=['pynacl', 'blessed'],
-    tests_require=['pytest', 'pexpect'],
+    tests_require=['pytest', 'pexpect', 'argon2-cffi'],
 )
