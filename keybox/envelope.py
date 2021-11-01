@@ -31,10 +31,8 @@ from .backend import *
 #               1 = XSalsa20 + Poly1305 MAC (default)
 # 5 - KDF (u8) - key derivation function, used for key stretching (password -> cryptographic key):
 #               (0 = none, passphrase is raw key)
-#               1 = scrypt
-#               2 = argon2id (default)
+#               1 = argon2id (default)
 # 6 - KDF_PARAMS (var) - KDF parameters, must appear after the KDF tag in the header
-#               scrypt - SIZE=2: mem_cost (u8), time_cost (u8)
 #               argon2 - SIZE=4: version (u8), mem_cost (u8), time_cost (u8), threads (u8)
 #               NOTE: actual memory usage is derived as 2^N KiB
 # 7 - SALT (str) - a salt to seed the KDF
@@ -74,14 +72,11 @@ TAG_CRC32 = 8
 COMPRESSION_NONE = 0
 COMPRESSION_DEFLATE = 1
 
-KDF_SCRYPT = 1
-KDF_ARGON2ID = 2
+KDF_ARGON2ID = 1
 KDF_BY_ID = {
-    KDF_SCRYPT: scrypt,
     KDF_ARGON2ID: argon2id,
 }
 KDF_PARAMS_BY_ID = {
-    KDF_SCRYPT: ScryptParams,
     KDF_ARGON2ID: Argon2Params,
 }
 

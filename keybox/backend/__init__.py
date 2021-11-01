@@ -4,7 +4,6 @@ from importlib import import_module
 # noinspection PyUnresolvedReferences
 __all__ = (
     # KDF
-    'ScryptParams', 'scrypt',
     'Argon2Params', 'argon2id',
     # cipher
     'XSalsa20Poly1305',
@@ -21,8 +20,6 @@ __all__ = (
 all_backend_names = ('cryptoref', 'argon2_cffi', 'pynacl', 'standard')
 
 symbol_provided_by = {
-    'ScryptParams': ('pynacl',),
-    'scrypt': ('pynacl',),
     'Argon2Params': ('argon2_cffi', 'pynacl'),
     'argon2id': ('argon2_cffi', 'pynacl'),
     'XSalsa20Poly1305': ('pynacl', 'cryptoref'),
