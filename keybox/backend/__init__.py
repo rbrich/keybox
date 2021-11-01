@@ -64,7 +64,7 @@ class MissingSurrogate:
 def __getattr__(name):
     provided_by_backends = symbol_provided_by[name]
     for backend in available_backends:
-        backend_name = backend.__name__.removeprefix('keybox.backend.')
+        backend_name = backend.__name__.split('.')[-1]
         if backend_name in provided_by_backends:
             # print(f"Using {name} from {backend}")
             return getattr(backend, name)
