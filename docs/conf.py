@@ -72,6 +72,7 @@ latex_domain_indices = False
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'keybox', 'Keybox manager', ['Radek Brich'], 1),
+    ('keybox', 'keybox', 'Keybox manager', ['Radek Brich'], 1),
     ('format', 'keybox', 'Keybox file format', ['Radek Brich'], 5),
+    ('envelope', 'keybox', 'Keybox envelope format', ['Radek Brich'], 5),
 ]

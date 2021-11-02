@@ -7,4 +7,5 @@ Documentation Contents
    :maxdepth: 2
 
    format
+   envelope
    keybox

@@ -90,7 +90,7 @@ class Wait:
         return "%s(%r)" % (self.__class__.__name__, self._seconds)
 
 
-filename = '/tmp/test_keybox.gpg'
+filename = '/tmp/test_keybox.safe'
 passphrase = 'secret'
 expect_password_options = ExpectPasswordOptions()
 

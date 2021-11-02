@@ -144,7 +144,7 @@ class TestKeybox(unittest.TestCase):
             'note': 'This is example record.',
             'password': 'pa$$w0rD',
         }
-        self._filename = '/tmp/test_keybox.gpg'
+        self._filename = '/tmp/test_keybox.safe'
         self._passphrase = 'secret'
 
     def test_write_read(self):

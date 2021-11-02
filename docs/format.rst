@@ -6,8 +6,8 @@ The keybox format:
 - Text format, a simple table with tab-delimited records, one per line.
 - First line is a header with column names, controlling the order of columns in the file.
 - Other lines are records.
-- Passwords are encrypted with master password (``gpg --symmetric --cipher-algo AES256 | base64 -w0``).
-- The whole file is encrypted with master password (``gpg --symmetric --cipher-algo AES256``).
+- Passwords are encrypted with the same encryption as the file, encoded as BASE64.
+- The whole file is compressed and encrypted (see :doc:`envelope`).
 
 The values in the record can't contain newlines or tab characters.
 Password values, on the other hand, can contain any characters, because they're encrypted
@@ -15,7 +15,7 @@ and become BASE64 strings.
 
 Highlights:
 
-- Easy recovery, in case this program stops working or becomes unmaintained.
+- Documented format, easy to recover data in case this program stops working or becomes unmaintained.
 - Extensibility: Should new program version need more columns, they can be
   added without breaking compatibility (both backwards and forward).
 - Tab character is reserved and cannot be used in values.
@@ -25,7 +25,7 @@ Highlights:
 
 Plain-text format
 -----------------
-Plain-text format used by import/export is similar to keybox format, but without encryption.
+Plain-text format used by import/export is similar to keybox format, but without encrypted passwords.
 
 The format is tab-delimited table with a header:
 
@@ -94,22 +94,6 @@ you can import them:
 Note that the default format (without --plain) is the keybox format.
 The third option is --json.
 
-How to create keybox file using standard tools
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Instead of the import command, the keybox file can be created directly by other programs.
-The following example shows how to create it using standard tools in Bash:
-
-.. code-block:: sh
-
-    $ # Master passphrase
-    $ MASTER='secret'
-    $ # Passwords are encrypted and encoded as BASE64
-    $ PASSWORD=$(printf "paSSw0rD" | gpg --passphrase $MASTER --symmetric \
-                 --cipher-algo AES256 | base64 -w0)
-    $ # Format and encrypt the file
-    $ printf "site\tuser\tpassword\nExample\tjohny\t${PASSWORD}\n" | gpg \
-        --passphrase ${MASTER} --output pw.gpg --symmetric --cipher-algo AES256
-
 
 Export
 ------
@@ -122,17 +106,3 @@ Use export command to decrypt all data including passwords:
 This will print exported data to stdout, which can be directed to other programs.
 Use ``-o`` parameter to write to a file instead.
 The output can be used when migrating data to another password manager.
-
-How to decrypt keybox file using standard tools
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-This recipe shows how to decrypt *pw.gpg* file created before:
-
-.. code-block:: sh
-
-    $ # Decrypt contents of file
-    $ gpg -dq pw.gpg
-    site    user    password
-    Example johny   jA0E<shortened>wOQr
-    $ # Passwords are encrypted and encoded as BASE64
-    $ printf "jA0E<shortened>wOQr" | base64 -d | gpg -dq
-    paSSw0rD

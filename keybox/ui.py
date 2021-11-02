@@ -15,7 +15,7 @@ from keybox.stringutil import contains
 from keybox.editor import InlineEditor
 
 DATA_DIR = '~/.keybox'
-DEFAULT_FILENAME = 'keybox.kb'
+DEFAULT_FILENAME = 'keybox.safe'
 
 
 def with_write_access(func):

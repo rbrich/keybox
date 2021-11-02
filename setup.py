@@ -14,7 +14,7 @@ setup_dir = Path(__file__).parent
 setup(
     name='keybox',
     version=(setup_dir / 'VERSION').read_text().strip(),
-    description='Storage for passwords, encrypted with GPG',
+    description='Simple password manager. Stores secrets in encrypted tab-delimited table.',
     long_description=(setup_dir / "README.rst").read_text(),
     long_description_content_type='text/x-rst',
     author='Radek Brich',
