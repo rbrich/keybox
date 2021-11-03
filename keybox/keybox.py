@@ -209,7 +209,7 @@ class Keybox:
         if file_format == 'json':
             raise NotImplementedError("json export not implemented")
 
-    def import_file(self, file, fn_passphrase, fn_resolve_matched_rec):
+    def import_file(self, file, fn_passphrase, fn_resolve_matched_rec, fn_print_new):
         """Import non-identical records from plain-text `file`.
 
         Checks all incoming records:
@@ -218,10 +218,8 @@ class Keybox:
         - new records are added
         - missing records - ignored
 
-        TODO: Modified records:
-        - same site and/or url
-        - same user
-        - different mtime
+        Modified records:
+        - detected at least 4 columns with same values
         - options: keep local, replace with incoming, add incoming as new
 
         """
@@ -251,7 +249,7 @@ class Keybox:
                 continue
             if not matched_recs:
                 # new
-                print("new:", new_rec)
+                fn_print_new(new_rec)
                 self.add_record(**new_rec.as_dict())
                 self.touch()
                 n_new += 1

@@ -88,14 +88,15 @@ class BaseUI:
                 return False
         return ok
 
-    def close(self, write=True):
+    def close(self, write=True, ask_write=None):
         if self.readonly():
             assert not self._keybox.modified(), "Modified in read-only mode"
             return
         if self._keybox.modified() and write:
-            self._write()
-        else:
-            self._close_tmp()
+            if ask_write is None or self._ask_yesno(ask_write):
+                self._write()
+            return
+        self._close_tmp()
 
     def readonly(self):
         return self._wfile is None
@@ -300,7 +301,7 @@ class BaseUI:
             with open(filename, 'w', encoding='utf-8') as f:
                 self._keybox.export_file(f, file_format)
 
-    def cmd_import(self, filename='-', file_format='keybox'):
+    def cmd_import(self, filename='-', file_format='keybox', quiet=False):
         """Import non-identical records from another keybox"""
         if file_format != 'keybox':
             raise NotImplementedError(file_format + " import not implemented")
@@ -316,11 +317,12 @@ class BaseUI:
                 raise PassphraseCanceled()
 
         def resolve_cb(local_recs, new_rec):
+            print("Updating:")
             for n, rec in enumerate(local_recs):
-                print('[%s] local:' % n, repr(rec))
-            print('[*] new:  ', repr(new_rec))
+                print('[%s] local:   ' % n, repr(rec))
+            print('[*] incoming:', repr(new_rec))
             while True:
-                ans = self._input("Replace [%s] / Add new [a] / Keep local [k]: "
+                ans = self._input("Replace local [%s] / Add incoming as new [a] / Keep local [k]: "
                                   % ']['.join(str(n) for n
                                               in range(len(local_recs))))
                 if ans == 'a': return None, 'add'
@@ -333,10 +335,14 @@ class BaseUI:
                 except ValueError:
                     continue
 
+        def print_new_cb(rec):
+            if not quiet:
+                print("Adding:", rec)
+
         def do_import(file):
             try:
                 n_total, n_new, n_updated = self._keybox.import_file(
-                    file, passphrase_cb, resolve_cb)
+                    file, passphrase_cb, resolve_cb, print_new_cb)
                 print("checked %d records (%d new, %d updated, %d identical)"
                       % (n_total, n_new, n_updated, n_total - n_new - n_updated))
             except PassphraseCanceled:
@@ -375,15 +381,14 @@ class BaseUI:
         return True
 
     def _create_new(self):
-        ans = self._input("Create new keybox file? [Y/n] ")
-        if len(ans) == 0 or ans.lower()[0] == 'y':
+        if self._ask_yesno("Create new keybox file?"):
             passphrase = self._input_pass("Enter passphrase: ")
             passphrase_check = self._input_pass("Re-enter passphrase: ")
             if passphrase != passphrase_check:
                 self._print("Not same...")
                 return False
             self._keybox.set_passphrase(passphrase)
-        else:  # ans != 'y'
+        else:  # answer = no
             return False
         return True
 
@@ -460,3 +465,8 @@ class BaseUI:
     def _input_pass(self, prompt):
         """Wrap getpass function to allow overriding."""
         return getpass(prompt)
+
+    def _ask_yesno(self, prompt) -> bool:
+        """Ask `prompt` [Y/n], return answer as bool"""
+        ans = self._input(prompt + " [Y/n] ")
+        return len(ans) == 0 or ans.lower()[0] == 'y'

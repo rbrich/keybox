@@ -37,12 +37,12 @@ def run_export(keybox_file, output_file, file_format):
     base_ui.cmd_export(output_file, file_format)
 
 
-def run_import(keybox_file, import_file, file_format):
+def run_import(keybox_file, import_file, file_format, quiet):
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open():
         return
-    base_ui.cmd_import(import_file, file_format)
-    base_ui.close()
+    base_ui.cmd_import(import_file, file_format, quiet)
+    base_ui.close(ask_write="Write imported changes?")
 
 
 def parse_args():
@@ -81,6 +81,8 @@ def parse_args():
 
     ap_import.add_argument('import_file', type=str,
                            help="the file to be imported ('-' for stdin)")
+    ap_import.add_argument('-q', '--quiet', action='store_true',
+                           help="do not print new records (use when importing to empty keybox)")
     ap_export.add_argument('-o', dest='output_file', type=str, default='-',
                            help="use this file instead of stdout")
     for subparser in (ap_import, ap_export):
