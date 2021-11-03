@@ -2,11 +2,11 @@
 # (open/close, basic commands)
 #
 
+from pathlib import Path
 from getpass import getpass
 from functools import wraps
 from collections import Counter
 import itertools
-import os.path
 import fcntl
 import sys
 
@@ -14,7 +14,7 @@ from keybox.keybox import Keybox, KeyboxRecord
 from keybox.stringutil import contains
 from keybox.editor import InlineEditor
 
-DATA_DIR = '~/.keybox'
+DATA_DIR = Path('~/.keybox')
 DEFAULT_FILENAME = 'keybox.safe'
 
 
@@ -58,10 +58,18 @@ class BaseUI:
         self._filename = filename or self.get_default_filename()
         #: We will write to temporary file to avoid data loss when write fails
         #: When write succeeds, the temp file will be moved to target file name
-        self._filename_tmp = self._filename + '.tmp'
+        self._filename_tmp = self._filename.with_suffix(self._filename.suffix + '.tmp')
         self._wfile = None
         self._keybox = Keybox()
         self._selected_record = None  # Record
+
+    def __del__(self):
+        if self._wfile is not None:
+            self._close_tmp()
+
+    @property
+    def keybox(self):
+        return self._keybox
 
     @property
     def selected(self):
@@ -73,8 +81,8 @@ class BaseUI:
 
     def open(self, readonly=False):
         self._expand_filename()
-        self._print("Opening file %r... " % self._filename, end='')
-        if os.path.exists(self._filename):
+        self._print("Opening file %r... " % str(self._filename), end='')
+        if self._filename.exists():
             print()
             ok = self._open_existing()
             if ok and (readonly or not self._open_tmp()):
@@ -301,9 +309,9 @@ class BaseUI:
             with open(filename, 'w', encoding='utf-8') as f:
                 self._keybox.export_file(f, file_format)
 
-    def cmd_import(self, filename='-', file_format='keybox', quiet=False):
+    def cmd_import(self, filename='-', file_format='keybox_gpg', quiet=False):
         """Import non-identical records from another keybox"""
-        if file_format != 'keybox':
+        if file_format != 'keybox_gpg':
             raise NotImplementedError(file_format + " import not implemented")
 
         class PassphraseCanceled(Exception):
@@ -340,20 +348,21 @@ class BaseUI:
                 print("Adding:", rec)
 
         def do_import(file):
-            try:
-                n_total, n_new, n_updated = self._keybox.import_file(
-                    file, passphrase_cb, resolve_cb, print_new_cb)
-                print("checked %d records (%d new, %d updated, %d identical)"
-                      % (n_total, n_new, n_updated, n_total - n_new - n_updated))
-            except PassphraseCanceled:
-                pass
+            n_total, n_new, n_updated = self._keybox.import_file(
+                file, passphrase_cb, resolve_cb, print_new_cb)
+            print("checked %d records (%d new, %d updated, %d identical)"
+                  % (n_total, n_new, n_updated, n_total - n_new - n_updated))
 
         self._print("Opening input file %r... " % filename)
-        if filename == '-':
-            do_import(sys.stdin.buffer)
-        else:
-            with open(filename, 'rb') as f:
-                do_import(f)
+        try:
+            if filename == '-':
+                do_import(sys.stdin.buffer)
+            else:
+                with open(filename, 'rb') as f:
+                    do_import(f)
+            return True
+        except PassphraseCanceled:
+            return False
 
     ################
     # File Utility #
@@ -361,11 +370,11 @@ class BaseUI:
 
     @staticmethod
     def get_default_filename():
-        return os.path.join(DATA_DIR, DEFAULT_FILENAME)
+        return DATA_DIR / DEFAULT_FILENAME
 
     def _expand_filename(self):
-        self._filename = os.path.expanduser(self._filename)
-        self._filename_tmp = self._filename + '.tmp'
+        self._filename = self._filename.expanduser()
+        self._filename_tmp = self._filename.with_suffix(self._filename.suffix + '.tmp')
 
     def _open_existing(self):
         try:
@@ -382,8 +391,8 @@ class BaseUI:
 
     def _create_new(self):
         if self._ask_yesno("Create new keybox file?"):
-            passphrase = self._input_pass("Enter passphrase: ")
-            passphrase_check = self._input_pass("Re-enter passphrase: ")
+            passphrase = self._input_pass("Enter new passphrase: ")
+            passphrase_check = self._input_pass("Re-enter new passphrase: ")
             if passphrase != passphrase_check:
                 self._print("Not same...")
                 return False
@@ -395,10 +404,10 @@ class BaseUI:
     def _open_tmp(self):
         """Prepare tmp file for writing and lock it"""
         try:
-            dirname = os.path.dirname(self._filename_tmp)
-            if dirname.endswith('/.keybox'):
-                os.makedirs(dirname, 0o700, exist_ok=True)
-            self._wfile = open(self._filename_tmp, 'wb')
+            dirname = self._filename_tmp.parent
+            if dirname.name == '.keybox':
+                dirname.mkdir(0o700, exist_ok=True)
+            self._wfile = self._filename_tmp.open('wb')
         except OSError as e:
             self._print("Warning: Can't open file for writing: %s" % e)
             return False
@@ -415,17 +424,17 @@ class BaseUI:
         self._wfile.close()
         self._wfile = None
         if unlink:
-            os.unlink(self._filename_tmp)
+            self._filename_tmp.unlink()
 
     def _write(self):
         # Write records to tmp file
         self._keybox.write(self._wfile)
         # Then rename it to target name, potentially overwriting old version
-        os.rename(self._filename_tmp, self._filename)
+        self._filename_tmp.rename(self._filename)
         # Close tmp file, which will also release the lock
         # It's important to do this after rename to avoid race condition
         self._close_tmp(unlink=False)
-        self._print("Changes saved to %s." % self._filename)
+        self._print(f"Changes saved to file {str(self._filename)!r}.")
 
     #################
     # Other Utility #

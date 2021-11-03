@@ -128,9 +128,9 @@ def test_shell(spawn_shell):
         Expect("Opening file '%s'... Not found." % filename),
         Expect("Create new keybox file? [Y/n] "),
         Send("y\n"),
-        Expect("Enter passphrase: "),
+        Expect("Enter new passphrase: "),
         Send(temp_pass + "\n"),
-        Expect("Re-enter passphrase: "),
+        Expect("Re-enter new passphrase: "),
         Send(temp_pass + "\n"),
         # Shell completer
         Expect("> "),  # line 8
@@ -173,7 +173,7 @@ def test_shell(spawn_shell):
         # Write
         Expect("> "),
         Send("w\n"),
-        Expect("Changes saved to %s." % filename),
+        Expect(f"Changes saved to file {filename!r}."),
         # Select
         Expect("> "),
         Send("s\n"),
@@ -210,7 +210,7 @@ def test_shell(spawn_shell):
         Expect("> "),
         SendControl("c"),
         Expect("quit"),
-        Expect("Changes saved to %s." % filename),
+        Expect(f"Changes saved to file {filename!r}."),
     ])
 
 
