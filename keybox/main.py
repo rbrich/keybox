@@ -1,12 +1,33 @@
 import sys
 import argparse
+import configparser
 from pathlib import Path
 
 from keybox.memlock import memlock
 from keybox import pwgen, shell, ui
 
 
-def run_print(keybox_file, filter_expr):
+def load_config(config_file, keybox_file):
+    config_file = Path(config_file).expanduser()
+    print(f'Loading config {str(config_file)!r}...')
+    config = configparser.ConfigParser()
+    config.read(config_file, encoding='utf-8')
+    for section in config.sections():
+        if section != 'keybox':
+            print(f"WARNING: unknown section {section!r} in config {config_file!r}")
+            continue
+        section = config[section]
+        for key in section:
+            if key == 'path':
+                keybox_file = section[key]
+            else:
+                print(f"WARNING: unknown key [{section.name!r}] {key!r} in config {config_file!r}")
+                continue
+    return Path(keybox_file)
+
+
+def run_print(config_file, keybox_file, filter_expr):
+    keybox_file = load_config(config_file, keybox_file)
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
@@ -17,8 +38,8 @@ def run_print(keybox_file, filter_expr):
     base_ui.cmd_print()
 
 
-def run_shell(keybox_file, readonly, timeout, no_memlock):
-    keybox_file = Path(keybox_file)
+def run_shell(config_file, keybox_file, readonly, timeout, no_memlock):
+    keybox_file = load_config(config_file, keybox_file)
     filename_gpg = keybox_file.expanduser().with_suffix('.gpg')
     if filename_gpg.exists():
         print(f"Found old-format file. To convert it, reply 'n' and run:")
@@ -40,14 +61,16 @@ def run_pwgen(length, words, upper, digits, special):
               sep='   ')
 
 
-def run_export(keybox_file, output_file, file_format):
+def run_export(config_file, keybox_file, output_file, file_format):
+    keybox_file = load_config(config_file, keybox_file)
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
     base_ui.cmd_export(output_file, file_format)
 
 
-def run_import(keybox_file, import_file, file_format, quiet, delete):
+def run_import(config_file, keybox_file, import_file, file_format, quiet, delete):
+    keybox_file = load_config(config_file, keybox_file)
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open():
         return
@@ -81,6 +104,9 @@ def parse_args():
     ap_print.set_defaults(func=run_print)
 
     for subparser in (ap_shell, ap_import, ap_export, ap_print):
+        subparser.add_argument('-c', '--config', dest='config_file',
+                               default=ui.DATA_DIR / 'keybox.conf',
+                               help="keybox file (default: %(default)s)")
         subparser.add_argument('-f', dest='keybox_file',
                                default=shell.ShellUI.get_default_filename(),
                                help="keybox file (default: %(default)s)")

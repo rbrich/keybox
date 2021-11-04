@@ -85,6 +85,18 @@ You are now in the shell. The basic workflow is as follows:
 Type **help** for a list of all commands.
 
 
+Config file
+-----------
+
+The default config file path is `~/.keybox/keybox.conf`.
+It can be used to point to a different location for the keybox file::
+
+    [keybox]
+    path = ~/vcs/keybox/keybox.safe
+
+The default path is `~/.keybox/keybox.safe`.
+
+
 Password Generator
 ------------------
 
