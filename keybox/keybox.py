@@ -211,10 +211,10 @@ class Keybox:
         if file_format == 'plain':
             records = (ExportRecord(self, record) for record in self._records)
             write_file(file, records, self._columns)
-        if file_format == 'json':
-            raise NotImplementedError("json export not implemented")
+        else:  # file_format == 'json'
+            raise NotImplementedError(f"{file_format} export not implemented")
 
-    def import_file(self, file, fn_passphrase, fn_resolve_matched_rec, fn_print_new):
+    def import_file(self, file, file_format, fn_passphrase, fn_resolve_matched_rec, fn_print_new):
         """Import non-identical records from plain-text `file`.
 
         Checks all incoming records:
@@ -228,16 +228,32 @@ class Keybox:
         - options: keep local, replace with incoming, add incoming as new
 
         """
-        # decrypt and parse the input file
-        input_envelope = EnvelopeGPG()
-        data = input_envelope.read(file, fn_passphrase)
-        records, columns = parse_file(data.decode('utf-8'))
+        if file_format == 'keybox_gpg':
+            # decrypt the input file
+            input_envelope = EnvelopeGPG()
+            data = input_envelope.read(file, fn_passphrase)
 
-        # fake Keybox object for input file
-        class FakeKeybox:
-            pass
-        input_keybox = FakeKeybox()
-        input_keybox.envelope = input_envelope
+            # fake Keybox object for input file
+            class FakeKeybox:
+                pass
+
+            input_keybox = FakeKeybox()
+            input_keybox.envelope = input_envelope
+
+            def wrap_import_rec(encrypted_rec):
+                return EncryptedRecord(input_keybox, encrypted_rec)
+
+        elif file_format == 'plain':
+            data = file.read()
+
+            def wrap_import_rec(r):
+                return r
+
+        else:
+            raise NotImplementedError(f"{file_format} import not implemented")
+
+        # parse the input file
+        records, columns = parse_file(data.decode('utf-8'))
 
         assert set(columns).issubset(self._columns), \
             'Unexpected column in header: %s' \
@@ -245,8 +261,8 @@ class Keybox:
         n_new = 0
         n_updated = 0
         candidates = [EncryptedRecord(self, record) for record in self._records]
-        for n, encrypted_rec in enumerate(records):
-            new_rec = EncryptedRecord(input_keybox, encrypted_rec)
+        for n, new_rec in enumerate(records):
+            new_rec = wrap_import_rec(new_rec)
             matched_recs, exact = self._match_record(candidates, new_rec)
             if exact:
                 assert len(matched_recs) == 1

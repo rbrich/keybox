@@ -23,6 +23,9 @@ class Record(dict):
         if key not in self._columns:
             self._columns.append(key)
 
+    def as_dict(self):
+        return self
+
     def get_columns(self):
         return tuple(self._columns)
 

@@ -314,8 +314,6 @@ class BaseUI:
 
     def cmd_import(self, filename='-', file_format='keybox_gpg', quiet=False):
         """Import non-identical records from another keybox"""
-        if file_format != 'keybox_gpg':
-            raise NotImplementedError(file_format + " import not implemented")
 
         class PassphraseCanceled(Exception):
             pass
@@ -343,7 +341,7 @@ class BaseUI:
                 for column in rec.get_columns())
 
         def resolve_cb(local_recs, new_rec):
-            print("Updating:")
+            print(term.bright_blue("Updating:"))
             all_diff_cols = set()
             for n, rec in enumerate(local_recs):
                 diff_cols = set(diff_columns(rec, new_rec))
@@ -368,11 +366,11 @@ class BaseUI:
 
         def print_new_cb(rec):
             if not quiet:
-                print("Adding:      ", format_rec(rec))
+                print(term.bright_green("Adding:      "), format_rec(rec))
 
         def do_import(file):
             n_total, n_new, n_updated = self._keybox.import_file(
-                file, passphrase_cb, resolve_cb, print_new_cb)
+                file, file_format, passphrase_cb, resolve_cb, print_new_cb)
             print("checked %d records (%d new, %d updated, %d identical)"
                   % (n_total, n_new, n_updated, n_total - n_new - n_updated))
 
