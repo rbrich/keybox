@@ -5,11 +5,11 @@
 import time
 import itertools
 
-from keybox.envelope import Envelope
-from keybox.envelope_gpg import EnvelopeGPG
-from keybox.record import Record, COLUMNS
-from keybox.fileformat import format_file, parse_file, write_file
-from keybox.stringutil import nt_escape
+from .envelope import Envelope
+from .envelope_gpg import EnvelopeGPG
+from .record import Record, COLUMNS
+from .fileformat import format_file, parse_file, write_file
+from .stringutil import nt_escape
 
 
 class EncryptedRecord:

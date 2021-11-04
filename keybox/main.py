@@ -3,8 +3,8 @@ import argparse
 import configparser
 from pathlib import Path
 
-from keybox.memlock import memlock
-from keybox import pwgen, shell, ui
+from .memlock import memlock
+from . import pwgen, shell, ui
 
 
 def load_config(config_file, keybox_file):

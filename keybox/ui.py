@@ -10,9 +10,9 @@ import itertools
 import fcntl
 import sys
 
-from keybox.keybox import Keybox, KeyboxRecord
-from keybox.stringutil import contains
-from keybox.editor import InlineEditor
+from .keybox import Keybox, KeyboxRecord
+from .stringutil import contains
+from .editor import InlineEditor
 
 DATA_DIR = Path('~/.keybox')
 DEFAULT_FILENAME = 'keybox.safe'

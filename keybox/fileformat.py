@@ -3,7 +3,7 @@
 
 import io
 
-from keybox.record import Record, COLUMNS
+from .record import Record, COLUMNS
 
 
 def format_header(columns=COLUMNS) -> str:
