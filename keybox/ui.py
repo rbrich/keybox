@@ -10,9 +10,12 @@ import itertools
 import fcntl
 import sys
 
+from blessed import Terminal
+
 from .keybox import Keybox, KeyboxRecord
 from .stringutil import contains
 from .editor import InlineEditor
+from .record import COLUMNS
 
 DATA_DIR = Path('~/.keybox')
 DEFAULT_FILENAME = 'keybox.safe'
@@ -324,17 +327,37 @@ class BaseUI:
                 self._print()
                 raise PassphraseCanceled()
 
+        def diff_columns(rec1, rec2):
+            for column in COLUMNS:
+                if rec1.get(column) != rec2.get(column):
+                    yield column
+
+        term = Terminal()
+
+        def highlight(text, condition):
+            return term.bright_yellow(text) if condition else term.yellow(text)
+
+        def format_rec(rec, diff_cols=()):
+            return ', '.join(
+                f'{column}={highlight(repr(rec[column]), column in diff_cols)}'
+                for column in rec.get_columns())
+
         def resolve_cb(local_recs, new_rec):
             print("Updating:")
+            all_diff_cols = set()
             for n, rec in enumerate(local_recs):
-                print('[%s] local:   ' % n, repr(rec))
-            print('[*] incoming:', repr(new_rec))
+                diff_cols = set(diff_columns(rec, new_rec))
+                all_diff_cols.update(diff_cols)
+                print(term.bold('[%s] local:   ') % n, format_rec(rec, diff_cols))
+            print(term.bold('[*] incoming:'), format_rec(new_rec, all_diff_cols))
             while True:
                 ans = self._input("Replace local [%s] / Add incoming as new [a] / Keep local [k]: "
                                   % ']['.join(str(n) for n
                                               in range(len(local_recs))))
-                if ans == 'a': return None, 'add'
-                if ans == 'k': return None, 'keep_local'
+                if ans == 'a':
+                    return None, 'add'
+                if ans == 'k':
+                    return None, 'keep_local'
                 try:
                     n = int(ans)
                     if n < 0 or n >= len(local_recs):
@@ -345,7 +368,7 @@ class BaseUI:
 
         def print_new_cb(rec):
             if not quiet:
-                print("Adding:", rec)
+                print("Adding:      ", format_rec(rec))
 
         def do_import(file):
             n_total, n_new, n_updated = self._keybox.import_file(

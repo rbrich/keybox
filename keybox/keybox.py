@@ -11,6 +11,8 @@ from .record import Record, COLUMNS
 from .fileformat import format_file, parse_file, write_file
 from .stringutil import nt_escape
 
+IMPORT_MIN_MATCHED_COLS = 3
+
 
 class EncryptedRecord:
 
@@ -25,8 +27,8 @@ class EncryptedRecord:
         self._record = record
 
     def __repr__(self):
-        a = ['{}={!r}'.format(column, self[column])
-             for column in self._record.get_columns()]
+        a = ('{}={!r}'.format(column, self[column])
+             for column in self._record.get_columns())
         return "{}({})".format(self.__class__.__name__, ', '.join(a))
 
     def __setitem__(self, key, value):
@@ -53,6 +55,9 @@ class EncryptedRecord:
         if pw:
             d['password'] = self._keybox.envelope.decrypt_base64(pw)
         return d
+
+    def get_columns(self):
+        return self._record.get_columns()
 
     @property
     def wrapped_record(self):
@@ -242,7 +247,7 @@ class Keybox:
         candidates = [EncryptedRecord(self, record) for record in self._records]
         for n, encrypted_rec in enumerate(records):
             new_rec = EncryptedRecord(input_keybox, encrypted_rec)
-            matched_recs, exact = self._match_record(candidates, new_rec, 4)
+            matched_recs, exact = self._match_record(candidates, new_rec)
             if exact:
                 assert len(matched_recs) == 1
                 candidates.remove(matched_recs[0])
@@ -307,7 +312,7 @@ class Keybox:
         if new_width > self._column_widths.get(column, 0):
             self._column_widths[column] = new_width
 
-    def _match_record(self, candidates, other, min_score):
+    def _match_record(self, candidates, other, min_score=IMPORT_MIN_MATCHED_COLS):
         """Look for most similar record to `other`.
 
         :param min_score    Minimal number of matching columns
