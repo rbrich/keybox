@@ -1,18 +1,18 @@
 keybox package
 ==============
 
-keybox.fileformat module
-------------------------
+keybox.envelope module
+----------------------
 
-.. automodule:: keybox.fileformat
+.. automodule:: keybox.envelope
     :members:
     :undoc-members:
     :show-inheritance:
 
-keybox.gpg module
------------------
+keybox.fileformat module
+------------------------
 
-.. automodule:: keybox.gpg
+.. automodule:: keybox.fileformat
     :members:
     :undoc-members:
     :show-inheritance:

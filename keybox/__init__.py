@@ -1,2 +1,2 @@
-__all__ = ('fileformat', 'gpg', 'keybox', 'main', 'memlock', 'pwgen',
+__all__ = ('envelope', 'envelope_gpg', 'fileformat', 'keybox', 'main', 'memlock', 'pwgen',
            'record', 'shell', 'stringutil', 'ui')

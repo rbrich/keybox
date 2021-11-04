@@ -1,6 +1,5 @@
-# format, parse
-# (keybox file format)
-#
+# Internal keybox file format (plain-data)
+# See envelope.py for the encryption layer.
 
 import io
 

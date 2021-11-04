@@ -115,7 +115,7 @@ class InlineEditor:
             yield t.cuf(ln_end)
 
     def _key_delete(self):
-        t, left, right = self._term, self._left, self._right
+        t, right = self._term, self._right
         if not right:
             return
         self._right = right[1:]

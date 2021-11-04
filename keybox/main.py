@@ -1,4 +1,6 @@
+import sys
 import argparse
+from pathlib import Path
 
 from keybox.memlock import memlock
 from keybox import pwgen, shell, ui
@@ -16,6 +18,14 @@ def run_print(keybox_file, filter_expr):
 
 
 def run_shell(keybox_file, readonly, timeout, no_memlock):
+    keybox_file = Path(keybox_file)
+    filename_gpg = keybox_file.expanduser().with_suffix('.gpg')
+    if filename_gpg.exists():
+        print(f"Found old-format file. To convert it, reply 'n' and run:")
+        print()
+        print(f"    {sys.executable} -m keybox import -q --delete {str(filename_gpg)!r}")
+        print()
+
     if not no_memlock:
         memlock()
     shell.SHELL_TIMEOUT_SECS = timeout
@@ -37,12 +47,16 @@ def run_export(keybox_file, output_file, file_format):
     base_ui.cmd_export(output_file, file_format)
 
 
-def run_import(keybox_file, import_file, file_format):
+def run_import(keybox_file, import_file, file_format, quiet, delete):
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open():
         return
-    base_ui.cmd_import(import_file, file_format)
-    base_ui.close()
+    if not base_ui.cmd_import(import_file, file_format, quiet):
+        return
+    base_ui.close(ask_write="Write imported changes?")
+    if delete and not base_ui.keybox.modified():
+        Path(import_file).unlink()
+        print(f"Removed imported file {str(import_file)!r}")
 
 
 def parse_args():
@@ -61,7 +75,7 @@ def parse_args():
     ap_export = sp.add_parser("export", help="export content of keybox file")
     ap_export.set_defaults(func=run_export)
     ap_import = sp.add_parser("import", help="import records from a file")
-    ap_import.set_defaults(func=run_import, file_format='keybox')
+    ap_import.set_defaults(func=run_import, file_format='keybox_gpg')
     ap_print = sp.add_parser("print", aliases=['p'],
                              help="print key specified by pattern")
     ap_print.set_defaults(func=run_print)
@@ -81,6 +95,10 @@ def parse_args():
 
     ap_import.add_argument('import_file', type=str,
                            help="the file to be imported ('-' for stdin)")
+    ap_import.add_argument('-q', '--quiet', action='store_true',
+                           help="do not print new records (use when importing to empty keybox)")
+    ap_import.add_argument('-D', '--delete', action='store_true',
+                           help="unlink imported file on success")
     ap_export.add_argument('-o', dest='output_file', type=str, default='-',
                            help="use this file instead of stdout")
     for subparser in (ap_import, ap_export):
