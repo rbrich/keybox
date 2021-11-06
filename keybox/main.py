@@ -6,27 +6,38 @@ from pathlib import Path
 from . import pwgen, shell, ui
 
 
-def load_config(config_file, keybox_file):
-    config_file = Path(config_file).expanduser()
-    print(f'Loading config {str(config_file)!r}...')
-    config = configparser.ConfigParser()
-    config.read(config_file, encoding='utf-8')
-    for section in config.sections():
-        if section != 'keybox':
-            print(f"WARNING: unknown section {section!r} in config {config_file!r}")
-            continue
-        section = config[section]
-        for key in section:
-            if key == 'path':
-                keybox_file = section[key]
-            else:
-                print(f"WARNING: unknown key [{section.name!r}] {key!r} in config {config_file!r}")
+class Config:
+
+    def __init__(self, config_file):
+        self._keybox_file = None
+        self.load(config_file)
+
+    def load(self, config_file):
+        config_file = Path(config_file).expanduser()
+        print(f'Loading config {str(config_file)!r}...')
+        config = configparser.ConfigParser()
+        config.read(config_file, encoding='utf-8')
+        for section in config.sections():
+            if section != 'keybox':
+                print(f"WARNING: unknown section {section!r} in config {config_file!r}")
                 continue
-    return Path(keybox_file)
+            section = config[section]
+            for key in section:
+                if key == 'path':
+                    self._keybox_file = Path(section[key])
+                else:
+                    print(f"WARNING: unknown key [{section.name!r}] {key!r} in config {config_file!r}")
+                    continue
+
+    def keybox_file(self, override=None):
+        if override is not None:
+            return Path(override)
+        return self._keybox_file or shell.ShellUI.get_default_filename()
 
 
 def run_print(config_file, keybox_file, filter_expr):
-    keybox_file = load_config(config_file, keybox_file)
+    cfg = Config(config_file)
+    keybox_file = cfg.keybox_file(override=keybox_file)
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
@@ -38,7 +49,8 @@ def run_print(config_file, keybox_file, filter_expr):
 
 
 def run_shell(config_file, keybox_file, readonly, timeout):
-    keybox_file = load_config(config_file, keybox_file)
+    cfg = Config(config_file)
+    keybox_file = cfg.keybox_file(override=keybox_file)
     filename_gpg = keybox_file.expanduser().with_suffix('.gpg')
     if filename_gpg.exists():
         print(f"Found old-format file. To convert it, reply 'n' and run:")
@@ -59,7 +71,8 @@ def run_pwgen(length, words, upper, digits, special):
 
 
 def run_export(config_file, keybox_file, output_file, file_format):
-    keybox_file = load_config(config_file, keybox_file)
+    cfg = Config(config_file)
+    keybox_file = cfg.keybox_file(override=keybox_file)
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
@@ -67,7 +80,8 @@ def run_export(config_file, keybox_file, output_file, file_format):
 
 
 def run_import(config_file, keybox_file, import_file, file_format, quiet, delete):
-    keybox_file = load_config(config_file, keybox_file)
+    cfg = Config(config_file)
+    keybox_file = cfg.keybox_file(override=keybox_file)
     base_ui = ui.BaseUI(keybox_file)
     if not base_ui.open():
         return
@@ -105,8 +119,7 @@ def parse_args():
                                default=ui.DATA_DIR / 'keybox.conf',
                                help="keybox file (default: %(default)s)")
         subparser.add_argument('-f', dest='keybox_file',
-                               default=shell.ShellUI.get_default_filename(),
-                               help="keybox file (default: %(default)s)")
+                               help=f"keybox file (default: {shell.ShellUI.get_default_filename()})")
 
     ap_shell.add_argument('-r', dest="readonly", action='store_true',
                           help="open keybox in read-only mode")

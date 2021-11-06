@@ -1,6 +1,8 @@
 import sys
 import os
+import shutil
 import time
+from pathlib import Path
 
 import pexpect
 import pytest
@@ -90,23 +92,34 @@ class Wait:
         return "%s(%r)" % (self.__class__.__name__, self._seconds)
 
 
+config_file = '/tmp/test_keybox.conf'
 filename = '/tmp/test_keybox.safe'
 passphrase = 'secret'
+dummy_filename = Path(__file__).parent / "dummy_keybox.safe"
+dummy_passphrase = "test123"
 expect_password_options = ExpectPasswordOptions()
 
 
 @pytest.fixture()
 def spawn_shell():
     p = pexpect.spawn(sys.executable,
-                      ["-m", "keybox", "shell", "-f", filename,
-                       '--no-memlock', '--timeout', '1'],
+                      ["-m", "keybox", "shell", "-c", config_file, "-f", filename,
+                       '--timeout', '1'],
                       echo=False, timeout=2, encoding='utf8')
     yield p
     p.close(force=True)
 
 
-@pytest.fixture(scope="module")
-def keybox_file():
+@pytest.fixture
+def no_keybox_file():
+    assert not os.path.exists(filename)
+    yield
+    os.unlink(filename)
+
+
+@pytest.fixture
+def dummy_keybox_file():
+    shutil.copyfile(dummy_filename, filename)
     yield
     os.unlink(filename)
 
@@ -120,12 +133,13 @@ def run_script(p, script):
     assert not p.isalive()
 
 
-@pytest.mark.usefixtures("keybox_file")
+@pytest.mark.usefixtures("no_keybox_file")
 def test_shell(spawn_shell):
     temp_pass = 'temporary_password'
     run_script(spawn_shell, [
         # Initialize
-        Expect("Opening file '%s'... Not found." % filename),
+        Expect(f"Loading config {config_file!r}..."),
+        Expect(f"Opening file {filename!r}... Not found."),
         Expect("Create new keybox file? [Y/n] "),
         Send("y\n"),
         Expect("Enter new passphrase: "),
@@ -214,14 +228,14 @@ def test_shell(spawn_shell):
     ])
 
 
-@pytest.mark.usefixtures("keybox_file")
+@pytest.mark.usefixtures("dummy_keybox_file")
 def test_timeout(spawn_shell):
-    """Uses file created by test_shell, must be called after it!"""
     run_script(spawn_shell, [
         # Initialize
-        Expect("Opening file %r... " % filename),
+        Expect(f"Loading config {config_file!r}..."),
+        Expect(f"Opening file {filename!r}... "),
         Expect("Passphrase: "),
-        Send(passphrase + "\n"),
+        Send(dummy_passphrase + "\n"),
         # Finish
         Expect("> "),
         Wait(1.1),

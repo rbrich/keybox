@@ -1,6 +1,5 @@
 import unittest
 import os
-import nacl.exceptions
 
 from keybox.envelope import Envelope
 from keybox.record import Record, COLUMNS
