@@ -25,10 +25,10 @@ keybox.keybox module
     :undoc-members:
     :show-inheritance:
 
-keybox.memlock module
+keybox.memory module
 ---------------------
 
-.. automodule:: keybox.memlock
+.. automodule:: keybox.memory
     :members:
     :undoc-members:
     :show-inheritance:

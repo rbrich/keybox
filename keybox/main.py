@@ -3,7 +3,6 @@ import argparse
 import configparser
 from pathlib import Path
 
-from .memlock import memlock
 from . import pwgen, shell, ui
 
 
@@ -38,7 +37,7 @@ def run_print(config_file, keybox_file, filter_expr):
     base_ui.cmd_print()
 
 
-def run_shell(config_file, keybox_file, readonly, timeout, no_memlock):
+def run_shell(config_file, keybox_file, readonly, timeout):
     keybox_file = load_config(config_file, keybox_file)
     filename_gpg = keybox_file.expanduser().with_suffix('.gpg')
     if filename_gpg.exists():
@@ -47,8 +46,6 @@ def run_shell(config_file, keybox_file, readonly, timeout, no_memlock):
         print(f"    {sys.executable} -m keybox import -q --delete {str(filename_gpg)!r}")
         print()
 
-    if not no_memlock:
-        memlock()
     shell.SHELL_TIMEOUT_SECS = timeout
     shell_ui = shell.ShellUI(keybox_file)
     shell_ui.start(readonly)
@@ -113,8 +110,6 @@ def parse_args():
 
     ap_shell.add_argument('-r', dest="readonly", action='store_true',
                           help="open keybox in read-only mode")
-    ap_shell.add_argument('--no-memlock', action='store_true',
-                          help="Do not try to lock memory")
     ap_shell.add_argument('--timeout', type=int, default=shell.SHELL_TIMEOUT_SECS,
                           help="Save and quit when timeout expires "
                                "(default: %(default)s)")
