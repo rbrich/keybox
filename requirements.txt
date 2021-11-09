@@ -3,3 +3,4 @@ Cython
 pynacl
 argon2-cffi
 blessed
+pyperclip

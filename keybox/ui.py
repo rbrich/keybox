@@ -11,6 +11,7 @@ import fcntl
 import sys
 
 from blessed import Terminal
+import pyperclip
 
 from .keybox import Keybox, KeyboxRecord
 from .stringutil import contains
@@ -269,6 +270,11 @@ class BaseUI:
         """Print password from selected record"""
         self._print(self._selected_record['password'])
 
+    @with_selected_record
+    def cmd_copy(self):
+        """Copy password from selected record"""
+        self._copy(self._selected_record['password'])
+
     @with_write_access
     @with_selected_record
     def cmd_modify(self, column, value=None):
@@ -484,16 +490,20 @@ class BaseUI:
         return selected_columns, text
 
     def _print(self, *args, **kwargs):
-        """Wrap print function to allow overriding."""
+        """Wraps print function to allow overriding."""
         print(*args, **kwargs)
         sys.stdout.flush()
 
+    def _copy(self, text):
+        """Wraps copy-to-clipboard function to allow overriding."""
+        pyperclip.copy(text)
+
     def _input(self, prompt):
-        """Wrap input function to allow overriding."""
+        """Wraps input function to allow overriding."""
         return input(prompt)
 
     def _input_pass(self, prompt):
-        """Wrap getpass function to allow overriding."""
+        """Wraps getpass function to allow overriding."""
         return getpass(prompt)
 
     def _ask_yesno(self, prompt) -> bool:

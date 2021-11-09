@@ -161,7 +161,7 @@ class Envelope:
     def set_passphrase(self, passphrase: str):
         """Derive a key from `passphrase`"""
         self._key = self._derive_key(passphrase)
-        self._box = self._cipher(self._key)
+        self._box = self._cipher(bytes(self._key))
 
     def check_passphrase(self, passphrase: str) -> bool:
         key_check = self._derive_key(passphrase)

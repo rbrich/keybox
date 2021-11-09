@@ -48,6 +48,19 @@ def run_print(config_file, keybox_file, filter_expr):
     base_ui.cmd_print()
 
 
+def run_copy(config_file, keybox_file, filter_expr):
+    cfg = Config(config_file)
+    keybox_file = cfg.keybox_file(override=keybox_file)
+    base_ui = ui.BaseUI(keybox_file)
+    if not base_ui.open(readonly=True):
+        return
+    print("Searching for %r..." % filter_expr)
+    base_ui.cmd_select(filter_expr)
+    if not base_ui.selected:
+        return
+    base_ui.cmd_copy()
+
+
 def run_shell(config_file, keybox_file, readonly, timeout):
     cfg = Config(config_file)
     keybox_file = cfg.keybox_file(override=keybox_file)
@@ -104,17 +117,21 @@ def parse_args():
     ap_shell = sp.add_parser("shell", aliases=['sh'],
                              help="start shell (default)")
     ap_shell.set_defaults(func=run_shell)
-    ap_pwgen = sp.add_parser("pwgen", help="generate random password")
+    ap_pwgen = sp.add_parser("pwgen", help="generate some random passwords")
     ap_pwgen.set_defaults(func=run_pwgen)
     ap_export = sp.add_parser("export", help="export content of keybox file")
     ap_export.set_defaults(func=run_export)
     ap_import = sp.add_parser("import", help="import records from a file")
     ap_import.set_defaults(func=run_import, file_format='keybox_gpg')
     ap_print = sp.add_parser("print", aliases=['p'],
-                             help="print key specified by pattern")
+                             help="search for a record by pattern and print the password")
     ap_print.set_defaults(func=run_print)
+    ap_copy = sp.add_parser("copy", aliases=['c'],
+                            help="search for a record by pattern and "
+                                 "copy the password to clipboard")
+    ap_copy.set_defaults(func=run_copy)
 
-    for subparser in (ap_shell, ap_import, ap_export, ap_print):
+    for subparser in (ap_shell, ap_import, ap_export, ap_print, ap_copy):
         subparser.add_argument('-c', '--config', dest='config_file',
                                default=ui.DATA_DIR / 'keybox.conf',
                                help="keybox file (default: %(default)s)")
@@ -158,10 +175,11 @@ def parse_args():
                           help="pwgen: number of special symbols to add "
                                "(default: %(default)s)")
 
-    ap_print.add_argument('filter_expr',
-                          help="Expression for selecting record to be printed. "
-                               "Format is [<column>:]<text>. "
-                               "Default <column> is 'site,url'. ")
+    for subparser in (ap_print, ap_copy):
+        subparser.add_argument('filter_expr',
+                               help="Expression for selecting record to be printed. "
+                                    "Format is [<column>:]<text>. "
+                                    "Default <column> is 'site,url'. ")
 
     args = ap.parse_args()
 
