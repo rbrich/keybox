@@ -3,7 +3,7 @@ import argparse
 import configparser
 from pathlib import Path
 
-from . import pwgen, shell, ui
+from . import pwgen, shell, ui, datasafe
 
 
 class Config:
@@ -38,7 +38,7 @@ class Config:
 def run_print(config_file, keybox_file, filter_expr):
     cfg = Config(config_file)
     keybox_file = cfg.keybox_file(override=keybox_file)
-    base_ui = ui.BaseUI(keybox_file)
+    base_ui = ui.KeyboxUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
     print("Searching for %r..." % filter_expr)
@@ -51,7 +51,7 @@ def run_print(config_file, keybox_file, filter_expr):
 def run_copy(config_file, keybox_file, filter_expr):
     cfg = Config(config_file)
     keybox_file = cfg.keybox_file(override=keybox_file)
-    base_ui = ui.BaseUI(keybox_file)
+    base_ui = ui.KeyboxUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
     print("Searching for %r..." % filter_expr)
@@ -86,7 +86,7 @@ def run_pwgen(length, words, upper, digits, special):
 def run_export(config_file, keybox_file, output_file, file_format):
     cfg = Config(config_file)
     keybox_file = cfg.keybox_file(override=keybox_file)
-    base_ui = ui.BaseUI(keybox_file)
+    base_ui = ui.KeyboxUI(keybox_file)
     if not base_ui.open(readonly=True):
         return
     base_ui.cmd_export(output_file, file_format)
@@ -95,7 +95,7 @@ def run_export(config_file, keybox_file, output_file, file_format):
 def run_import(config_file, keybox_file, import_file, file_format, quiet, delete):
     cfg = Config(config_file)
     keybox_file = cfg.keybox_file(override=keybox_file)
-    base_ui = ui.BaseUI(keybox_file)
+    base_ui = ui.KeyboxUI(keybox_file)
     if not base_ui.open():
         return
     if not base_ui.cmd_import(import_file, file_format, quiet):
@@ -104,6 +104,30 @@ def run_import(config_file, keybox_file, import_file, file_format, quiet, delete
     if delete and not base_ui.keybox.modified():
         Path(import_file).unlink()
         print(f"Removed imported file {str(import_file)!r}")
+
+
+def run_encrypt(file, keep):
+    plain_file = Path(file).expanduser()
+    safe_file = plain_file.with_suffix(plain_file.suffix + '.safe')
+    safe_ui = datasafe.DataSafeUI(safe_file)
+    if not safe_ui.create():
+        return
+    safe_ui.encrypt_file(plain_file)
+    safe_ui.close()
+    if not keep:
+        plain_file.unlink()
+        print(f"Removed original file {str(plain_file)!r}")
+
+
+def run_decrypt(file, keep):
+    safe_file = Path(file).expanduser()
+    plain_file = safe_file.with_suffix('')
+    safe_ui = datasafe.DataSafeUI(safe_file)
+    if not safe_ui.open():
+        return
+    if not safe_ui.decrypt_file(plain_file):
+        return
+    safe_ui.close(unlink=(not keep))
 
 
 def parse_args():
@@ -130,6 +154,17 @@ def parse_args():
                             help="search for a record by pattern and "
                                  "copy the password to clipboard")
     ap_copy.set_defaults(func=run_copy)
+
+    ap_encrypt = sp.add_parser("encrypt", aliases=['enc'], help="encrypt a file (.safe format)")
+    ap_encrypt.set_defaults(func=run_encrypt)
+    ap_decrypt = sp.add_parser("decrypt", aliases=['dec'], help="decrypt a file (.safe format)")
+    ap_decrypt.set_defaults(func=run_decrypt)
+
+    for subparser in (ap_encrypt, ap_decrypt):
+        subparser.add_argument('file', type=str,
+                               help="a file to be encrypted/decrypted")
+        subparser.add_argument('-k', '--keep', action='store_true',
+                               help="keep the original file after successful encryption/decryption")
 
     for subparser in (ap_shell, ap_import, ap_export, ap_print, ap_copy):
         subparser.add_argument('-c', '--config', dest='config_file',

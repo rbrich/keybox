@@ -149,8 +149,8 @@ def test_shell(spawn_shell):
         # Shell completer
         Expect("> "),  # line 8
         Send("\t\t"),
-        Expect("((add|check|count|delete|export|help|import|list|modify|nowrite|"
-               "print|quit|reset|select|write)\\s+){15}", regex=True),
+        Expect("((add|check|copy|count|delete|export|help|import|list|modify|nowrite|"
+               "print|quit|reset|select|write)\\s+){16}", regex=True),
         Send("m\t \t\t"),
         Expect("mtime     note      password  site      tags      url       "
                "user"),
@@ -182,7 +182,7 @@ def test_shell(spawn_shell):
                regex=True),
         # Count
         Expect("> "),  # line 35
-        Send("co\n"),
+        Send("count\n"),
         Expect("1"),
         # Write
         Expect("> "),

@@ -46,6 +46,35 @@ def with_selected_record(func):
 
 class BaseUI:
 
+    #################
+    # Other Utility #
+    #################
+
+    def _print(self, *args, **kwargs):
+        """Wraps print function to allow overriding."""
+        print(*args, **kwargs)
+        sys.stdout.flush()
+
+    def _copy(self, text):
+        """Wraps copy-to-clipboard function to allow overriding."""
+        pyperclip.copy(text)
+
+    def _input(self, prompt):
+        """Wraps input function to allow overriding."""
+        return input(prompt)
+
+    def _input_pass(self, prompt):
+        """Wraps getpass function to allow overriding."""
+        return getpass(prompt)
+
+    def _ask_yesno(self, prompt) -> bool:
+        """Ask `prompt` [Y/n], return answer as bool"""
+        ans = self._input(prompt + " [Y/n] ")
+        return len(ans) == 0 or ans.lower()[0] == 'y'
+
+
+class KeyboxUI(BaseUI):
+
     """UI base commands.
 
     `open` MUST be called before any other method and it MUST return success.
@@ -416,8 +445,8 @@ class BaseUI:
             return False
         return True
 
-    def _create_new(self):
-        if self._ask_yesno("Create new keybox file?"):
+    def _create_new(self, ask=True):
+        if not ask or self._ask_yesno("Create new keybox file?"):
             passphrase = self._input_pass("Enter new passphrase: ")
             passphrase_check = self._input_pass("Re-enter new passphrase: ")
             if passphrase != passphrase_check:
@@ -488,25 +517,3 @@ class BaseUI:
         if text == '*':
             text = ''
         return selected_columns, text
-
-    def _print(self, *args, **kwargs):
-        """Wraps print function to allow overriding."""
-        print(*args, **kwargs)
-        sys.stdout.flush()
-
-    def _copy(self, text):
-        """Wraps copy-to-clipboard function to allow overriding."""
-        pyperclip.copy(text)
-
-    def _input(self, prompt):
-        """Wraps input function to allow overriding."""
-        return input(prompt)
-
-    def _input_pass(self, prompt):
-        """Wraps getpass function to allow overriding."""
-        return getpass(prompt)
-
-    def _ask_yesno(self, prompt) -> bool:
-        """Ask `prompt` [Y/n], return answer as bool"""
-        ans = self._input(prompt + " [Y/n] ")
-        return len(ans) == 0 or ans.lower()[0] == 'y'
