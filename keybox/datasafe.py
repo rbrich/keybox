@@ -39,7 +39,7 @@ class DataSafeUI(BaseUI):
         self.close()
 
     def create(self):
-        self._print("Creating file %r... " % str(self._filename))
+        self._print("Creating file %r..." % str(self._filename))
         if self._filename.exists():
             if not self._ask_yesno("Target file exists. Overwrite?"):
                 return False
@@ -52,7 +52,7 @@ class DataSafeUI(BaseUI):
         return True
 
     def open(self):
-        self._print("Opening file %r... " % str(self._filename))
+        self._print("Opening file %r..." % str(self._filename))
         if not self._filename.exists():
             print("Not found.")
             return False
