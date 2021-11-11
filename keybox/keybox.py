@@ -4,6 +4,7 @@
 
 import time
 import itertools
+import json
 
 from .envelope import Envelope
 from .envelope_gpg import EnvelopeGPG
@@ -43,18 +44,17 @@ class EncryptedRecord:
             value = self._keybox.envelope.decrypt_base64(value)
         return value
 
+    def __len__(self):
+        return len(self._record)
+
     def get(self, key, default=None):
         value = self._record.get(key, default)
         if key == 'password' and value:
             value = self._keybox.envelope.decrypt_base64(value)
         return value
 
-    def as_dict(self):
-        d = dict(self._record)
-        pw = d.get('password')
-        if pw:
-            d['password'] = self._keybox.envelope.decrypt_base64(pw)
-        return d
+    def keys(self):
+        return self._record.keys()
 
     def get_columns(self):
         return self._record.get_columns()
@@ -211,11 +211,13 @@ class Keybox:
         if file_format == 'plain':
             records = (ExportRecord(self, record) for record in self._records)
             write_file(file, records, self._columns)
+        elif file_format == 'json':
+            json.dump([EncryptedRecord(self, record) for record in self._records], file)
         else:  # file_format == 'json'
             raise NotImplementedError(f"{file_format} export not implemented")
 
     def import_file(self, file, file_format, fn_passphrase, fn_resolve_matched_rec, fn_print_new):
-        """Import non-identical records from plain-text `file`.
+        """Import non-identical records from `file` which is in `file_format`.
 
         Checks all incoming records:
         - identical records are skipped
@@ -228,10 +230,12 @@ class Keybox:
         - options: keep local, replace with incoming, add incoming as new
 
         """
-        if file_format == 'keybox_gpg':
+        if file_format in ('keybox', 'keybox_gpg'):
             # decrypt the input file
-            input_envelope = EnvelopeGPG()
+            input_envelope = EnvelopeGPG() if file_format == 'keybox_gpg' else Envelope()
             data = input_envelope.read(file, fn_passphrase)
+            # parse the input file
+            records, columns = parse_file(data.decode('utf-8'))
 
             # fake Keybox object for input file
             class FakeKeybox:
@@ -240,20 +244,21 @@ class Keybox:
             input_keybox = FakeKeybox()
             input_keybox.envelope = input_envelope
 
-            def wrap_import_rec(encrypted_rec):
-                return EncryptedRecord(input_keybox, encrypted_rec)
+            for i, record in enumerate(records):
+                records[i] = EncryptedRecord(input_keybox, record)
 
         elif file_format == 'plain':
-            data = file.read()
+            records, columns = parse_file(file.read().decode('utf-8'))
 
-            def wrap_import_rec(r):
-                return r
+        elif file_format == 'json':
+            records = json.load(file)
+            if len(records):
+                columns = tuple(records[0].keys())
+            else:
+                columns = ()
 
         else:
             raise NotImplementedError(f"{file_format} import not implemented")
-
-        # parse the input file
-        records, columns = parse_file(data.decode('utf-8'))
 
         assert set(columns).issubset(self._columns), \
             'Unexpected column in header: %s' \
@@ -262,7 +267,6 @@ class Keybox:
         n_updated = 0
         candidates = [EncryptedRecord(self, record) for record in self._records]
         for n, new_rec in enumerate(records):
-            new_rec = wrap_import_rec(new_rec)
             matched_recs, exact = self._match_record(candidates, new_rec)
             if exact:
                 assert len(matched_recs) == 1
@@ -271,7 +275,7 @@ class Keybox:
             if not matched_recs:
                 # new
                 fn_print_new(new_rec)
-                self.add_record(**new_rec.as_dict())
+                self.add_record(**new_rec)
                 self.touch()
                 n_new += 1
                 continue
@@ -284,7 +288,7 @@ class Keybox:
                 n_updated += 1
                 self.touch()
             elif resolution == 'add':
-                self.add_record(**new_rec.as_dict())
+                self.add_record(**new_rec)
                 n_new += 1
                 self.touch()
             else:

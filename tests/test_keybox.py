@@ -189,12 +189,12 @@ class TestKeybox(unittest.TestCase):
         keybox = Keybox()
         with open(self._filename, 'rb') as f:
             keybox.read(f, lambda: self._passphrase + '2')
-        record = keybox[0].as_dict()
+        record = dict(keybox[0])
         del record['mtime']
         self.assertEqual(record, self._sample)
         # Change passphrase
         keybox.set_passphrase(self._passphrase + '3')
-        record = keybox[0].as_dict()
+        record = dict(keybox[0])
         del record['mtime']
         self.assertEqual(record, self._sample)
         with open(self._filename, 'wb') as f:
@@ -208,6 +208,6 @@ class TestKeybox(unittest.TestCase):
         # Read with new passphrase
         with open(self._filename, 'rb') as f:
             keybox.read(f, lambda: self._passphrase + '3')
-        record = keybox[0].as_dict()
+        record = dict(keybox[0])
         del record['mtime']
         self.assertEqual(record, self._sample)

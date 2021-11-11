@@ -144,9 +144,9 @@ def parse_args():
     ap_pwgen = sp.add_parser("pwgen", help="generate some random passwords")
     ap_pwgen.set_defaults(func=run_pwgen)
     ap_export = sp.add_parser("export", help="export content of keybox file")
-    ap_export.set_defaults(func=run_export)
+    ap_export.set_defaults(func=run_export, file_format='plain')
     ap_import = sp.add_parser("import", help="import records from a file")
-    ap_import.set_defaults(func=run_import, file_format='keybox_gpg')
+    ap_import.set_defaults(func=run_import, file_format='keybox')
     ap_print = sp.add_parser("print", aliases=['p'],
                              help="search for a record by pattern and print the password")
     ap_print.set_defaults(func=run_print)
@@ -193,6 +193,9 @@ def parse_args():
                                 help="select plain-text format")
         format_grp.add_argument('--json', dest='file_format', action='store_const', const='json',
                                 help="select JSON format")
+        if subparser == ap_import:
+            format_grp.add_argument('--gpg', dest='file_format', action='store_const', const='keybox_gpg',
+                                    help="select legacy GPG format")
 
     ap_pwgen.add_argument('-l', dest='length', type=int, default=pwgen.MIN_LENGTH,
                           help="pwgen: minimal length of password "
