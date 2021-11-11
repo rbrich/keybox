@@ -20,13 +20,15 @@ cryptoref: cryptoref/cryptoref.pyx
 	python3 setup.py build_ext --inplace
 
 test:
-	python3 setup.py pytest --addopts "tests/"
+	python3 setup.py pytest
 
 cov:
-	python3 setup.py pytest --addopts "--cov-report html --cov-report term-missing --cov=keybox tests/"
+	env COVERAGE=1 coverage run --parallel-mode setup.py pytest
+	coverage combine
 
 htmlcov: cov
-	xdg-open htmlcov/index.html
+	coverage html --show-contexts
+	open htmlcov/index.html
 
 check: build
 	twine check dist/*

@@ -102,9 +102,15 @@ expect_password_options = ExpectPasswordOptions()
 
 @pytest.fixture()
 def spawn_shell():
-    p = pexpect.spawn(sys.executable,
-                      ["-m", "keybox", "shell", "-c", config_file, "-f", filename,
-                       '--timeout', '1'],
+    if os.environ.get('COVERAGE'):
+        exe = "coverage"
+        args = ["run", "--parallel-mode"]
+    else:
+        exe = sys.executable
+        args = []
+    p = pexpect.spawn(exe, args + [
+                      "-m", "keybox", "shell", "-c", config_file, "-f", filename,
+                      '--timeout', '1'],
                       echo=False, timeout=2, encoding='utf8')
     yield p
     p.close(force=True)
