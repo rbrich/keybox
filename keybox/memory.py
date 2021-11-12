@@ -23,7 +23,7 @@ def memory_lock(addr, len):
     except OSError as e:
         print("Warning: Unable to lock memory.", str(e))
         return
-    if rc == -1:
+    if rc == -1:  # pragma: no cover
         err = ctypes.get_errno()
         if err == errno.ENOMEM:
             limit = resource.getrlimit(resource.RLIMIT_MEMLOCK)[1]
@@ -39,7 +39,7 @@ def memory_unlock(addr, len):
     except OSError as e:
         print("Warning: Unable to unlock memory.", str(e))
         return
-    if rc == -1:
+    if rc == -1:  # pragma: no cover
         err = ctypes.get_errno()
         print("Error (munlock):", errno.errorcode[err], os.strerror(err))
 
@@ -50,7 +50,7 @@ def memory_clear(addr, len):
     except OSError as e:
         print("Warning: Unable to clear memory.", str(e))
         return
-    if rc == -1:
+    if rc == -1:  # pragma: no cover
         err = ctypes.get_errno()
         print("Error (memset):", errno.errorcode[err], os.strerror(err))
 

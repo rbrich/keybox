@@ -22,7 +22,7 @@ cryptoref: cryptoref/cryptoref.pyx
 test:
 	python3 setup.py pytest
 
-.coverage:
+.coverage: keybox tests .coveragerc
 	env COVERAGE=1 coverage run --parallel-mode setup.py pytest
 	coverage combine
 
