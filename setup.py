@@ -21,7 +21,7 @@ setup(
     author_email='radek.brich@devl.cz',
     license='MIT',
     url='https://github.com/rbrich/keybox',
-    packages=['keybox'],
+    packages=['keybox', 'keybox.backend'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
