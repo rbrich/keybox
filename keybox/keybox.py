@@ -212,8 +212,8 @@ class Keybox:
             records = (ExportRecord(self, record) for record in self._records)
             write_file(file, records, self._columns)
         elif file_format == 'json':
-            json.dump([EncryptedRecord(self, record) for record in self._records], file)
-        else:  # file_format == 'json'
+            json.dump([dict(EncryptedRecord(self, record)) for record in self._records], file)
+        else:
             raise NotImplementedError(f"{file_format} export not implemented")
 
     def import_file(self, file, file_format, fn_passphrase, fn_resolve_matched_rec, fn_print_new):

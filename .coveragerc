@@ -1,3 +1,7 @@
 [run]
 source = keybox
 dynamic_context = test_function
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:

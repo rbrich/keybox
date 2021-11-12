@@ -22,11 +22,14 @@ cryptoref: cryptoref/cryptoref.pyx
 test:
 	python3 setup.py pytest
 
-cov:
+.coverage:
 	env COVERAGE=1 coverage run --parallel-mode setup.py pytest
 	coverage combine
 
-htmlcov: cov
+cov: .coverage
+	coverage report --show-missing --fail-under=70
+
+htmlcov: .coverage
 	coverage html --show-contexts
 	open htmlcov/index.html
 
@@ -37,4 +40,6 @@ upload: build
 	twine upload dist/*
 
 clean:
-	rm -rf $(BUILD) dist keybox.egg-info cryptoref/cryptoref.c cryptoref.cpython-*.so
+	rm -rf $(BUILD) dist keybox.egg-info \
+		cryptoref/cryptoref.c cryptoref.cpython-*.so \
+		.coverage

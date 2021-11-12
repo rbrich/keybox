@@ -1,11 +1,21 @@
 import unittest
 import os
+from io import StringIO, BytesIO
+from pathlib import Path
 
 from keybox.envelope import Envelope
 from keybox.record import Record, COLUMNS
 from keybox.keybox import Keybox, KeyboxRecord
 from keybox.fileformat import format_file, parse_file
 from keybox import pwgen
+
+dummy_filename = Path(__file__).parent / "dummy_keybox.safe"
+dummy_passphrase = "test123"
+dummy_plain = """site	user	url	tags	mtime	note	password
+test	test	http://test.test	test	2021-11-06 20:23:59	test!	test
+"""
+dummy_json = '[{"site": "test", "user": "test", "url": "http://test.test", "tags": "test", ' \
+             '"mtime": "2021-11-06 20:23:59", "note": "test!", "password": "test"}]'
 
 
 class TestPasswordGenerator(unittest.TestCase):
@@ -211,3 +221,39 @@ class TestKeybox(unittest.TestCase):
         record = dict(keybox[0])
         del record['mtime']
         self.assertEqual(record, self._sample)
+
+
+class TestExportImport(unittest.TestCase):
+
+    def test_export(self):
+        keybox = Keybox()
+        with open(dummy_filename, 'rb') as f:
+            keybox.read(f, lambda: dummy_passphrase)
+
+        out = StringIO()
+        keybox.export_file(out, 'plain')
+        self.assertEqual(out.getvalue(), dummy_plain)
+
+        out = StringIO()
+        keybox.export_file(out, 'json')
+        self.assertEqual(out.getvalue(), dummy_json)
+
+        out = StringIO()
+        self.assertRaises(NotImplementedError, keybox.export_file, out, 'keybox')
+        self.assertRaises(NotImplementedError, keybox.export_file, out, 'keybox_gpg')
+
+    def test_import_existing(self):
+        keybox = Keybox()
+        with open(dummy_filename, 'rb') as f:
+            keybox.read(f, lambda: dummy_passphrase)
+
+        self.assertEqual(
+            keybox.import_file(BytesIO(dummy_plain.encode()), 'plain', None, None, None),
+            (1, 0, 0))
+        self.assertEqual(
+            keybox.import_file(BytesIO(dummy_json.encode()), 'json', None, None, None),
+            (1, 0, 0))
+        with open(dummy_filename, 'rb') as f:
+            self.assertEqual(
+                keybox.import_file(f, 'keybox', lambda: dummy_passphrase, None, None),
+                (1, 0, 0))

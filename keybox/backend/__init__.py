@@ -35,7 +35,7 @@ available_backends = ()
 for backend_name in all_backend_names:
     try:
         available_backends += (import_module('.' + backend_name, __name__),)
-    except ImportError as exc:
+    except ImportError:
         pass
 del backend_name
 

@@ -1,4 +1,6 @@
 __pycache__
+cryptoref/cryptoref.c
+cryptoref.*.so
 build/
 dist/
 keybox.egg-info/
