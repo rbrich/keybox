@@ -12,10 +12,10 @@ class XSalsa20Poly1305:
         self._key = key
 
     def encrypt(self, message: bytes, nonce: bytes) -> bytes:
-        return nonce + xsalsa20poly1305_encrypt(message, nonce, self._key)
+        return nonce + xsalsa20poly1305_encrypt(message, nonce, bytes(self._key))
 
     def decrypt(self, ciphertext: bytes) -> bytes:
-        return xsalsa20poly1305_decrypt(ciphertext[24:], ciphertext[:24], self._key)
+        return xsalsa20poly1305_decrypt(ciphertext[24:], ciphertext[:24], bytes(self._key))
 
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ Dependencies:
 
 - POSIX OS
 - Python 3.7 or later
-- PyNaCl
+- PyNaCl, blessed, pyperclip
 
 
 Installation
@@ -63,6 +63,8 @@ Dependencies:
     - required for pwgen
     - Debian: ``apt install wamerican``
 
+* blessed, pyperclip - terminal utility
+
 * `pynacl <https://pynacl.readthedocs.io/en/latest/install/>`_
 
 * argon2-cffi - optional, replaces argon2 from PyNaCl when available
@@ -83,6 +85,18 @@ You are now in the shell. The basic workflow is as follows:
 - **quit**
 
 Type **help** for a list of all commands.
+
+
+Config file
+-----------
+
+The default config file path is `~/.keybox/keybox.conf`.
+It can be used to point to a different location for the keybox file::
+
+    [keybox]
+    path = ~/vcs/keybox/keybox.safe
+
+The default path is `~/.keybox/keybox.safe`.
 
 
 Password Generator

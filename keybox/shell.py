@@ -8,8 +8,8 @@ import signal
 import sys
 from inspect import signature
 
-from keybox.ui import BaseUI
-from keybox import pwgen
+from .ui import KeyboxUI
+from . import pwgen
 
 SHELL_TIMEOUT_SECS = 3600  # 1 hour
 
@@ -201,7 +201,7 @@ class TagsCompleter(BaseCompleter):
             return None
 
 
-class ShellUI(BaseUI):
+class ShellUI(KeyboxUI):
 
     """Shell allows user type and execute commands.
 

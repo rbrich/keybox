@@ -24,6 +24,7 @@ class Record(dict):
             self._columns.append(key)
 
     def get_columns(self):
+        """Like keys(), but in predefined order (same as COLUMNS)"""
         return tuple(self._columns)
 
     def _standardize_columns(self):

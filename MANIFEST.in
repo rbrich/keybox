@@ -1,1 +1,3 @@
 include VERSION
+include cryptoref/cryptoref.pyx
+include cryptoref/xsalsa20poly1305.*

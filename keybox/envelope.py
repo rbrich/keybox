@@ -7,6 +7,7 @@ import struct
 from io import BytesIO
 
 from .backend import *
+from .memory import SecureMemory
 
 MAGIC = b'[K]\0'  # nul byte marks the file as binary without depending on the content itself
 
@@ -66,9 +67,11 @@ class Envelope:
         self._key = None
         self._salt = randombytes(SALT_SIZE)
 
-    def _derive_key(self, passphrase: str) -> bytes:
-        return self._kdf(passphrase.encode('utf-8'), self._salt, self._cipher.KEY_SIZE,
-                         self._kdf_params)
+    def _derive_key(self, passphrase: str) -> SecureMemory:
+        # The SecureMemory gets the key in a temporary, which itself is not secured.
+        # This would need to be implemented in C to have complete control over the memory.
+        return SecureMemory(self._kdf(passphrase.encode('utf-8'), self._salt, self._cipher.KEY_SIZE,
+                         self._kdf_params))
 
     @staticmethod
     def _write_chunk(f: BytesIO, tag: int, value: bytes):
@@ -158,7 +161,7 @@ class Envelope:
     def set_passphrase(self, passphrase: str):
         """Derive a key from `passphrase`"""
         self._key = self._derive_key(passphrase)
-        self._box = self._cipher(self._key)
+        self._box = self._cipher(bytes(self._key))
 
     def check_passphrase(self, passphrase: str) -> bool:
         key_check = self._derive_key(passphrase)

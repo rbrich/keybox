@@ -4,12 +4,15 @@
 
 import time
 import itertools
+import json
 
-from keybox.envelope import Envelope
-from keybox.envelope_gpg import EnvelopeGPG
-from keybox.record import Record, COLUMNS
-from keybox.fileformat import format_file, parse_file, write_file
-from keybox.stringutil import nt_escape
+from .envelope import Envelope
+from .envelope_gpg import EnvelopeGPG
+from .record import Record, COLUMNS
+from .fileformat import format_file, parse_file, write_file
+from .stringutil import nt_escape
+
+IMPORT_MIN_MATCHED_COLS = 3
 
 
 class EncryptedRecord:
@@ -25,8 +28,8 @@ class EncryptedRecord:
         self._record = record
 
     def __repr__(self):
-        a = ['{}={!r}'.format(column, self[column])
-             for column in self._record.get_columns()]
+        a = ('{}={!r}'.format(column, self[column])
+             for column in self._record.get_columns())
         return "{}({})".format(self.__class__.__name__, ', '.join(a))
 
     def __setitem__(self, key, value):
@@ -41,18 +44,20 @@ class EncryptedRecord:
             value = self._keybox.envelope.decrypt_base64(value)
         return value
 
+    def __len__(self):
+        return len(self._record)
+
     def get(self, key, default=None):
         value = self._record.get(key, default)
         if key == 'password' and value:
             value = self._keybox.envelope.decrypt_base64(value)
         return value
 
-    def as_dict(self):
-        d = dict(self._record)
-        pw = d.get('password')
-        if pw:
-            d['password'] = self._keybox.envelope.decrypt_base64(pw)
-        return d
+    def keys(self):
+        return self._record.keys()
+
+    def get_columns(self):
+        return self._record.get_columns()
 
     @property
     def wrapped_record(self):
@@ -206,11 +211,13 @@ class Keybox:
         if file_format == 'plain':
             records = (ExportRecord(self, record) for record in self._records)
             write_file(file, records, self._columns)
-        if file_format == 'json':
-            raise NotImplementedError("json export not implemented")
+        elif file_format == 'json':
+            json.dump([dict(EncryptedRecord(self, record)) for record in self._records], file)
+        else:
+            raise NotImplementedError(f"{file_format} export not implemented")
 
-    def import_file(self, file, fn_passphrase, fn_resolve_matched_rec, fn_print_new):
-        """Import non-identical records from plain-text `file`.
+    def import_file(self, file, file_format, fn_passphrase, fn_resolve_matched_rec, fn_print_new):
+        """Import non-identical records from `file` which is in `file_format`.
 
         Checks all incoming records:
         - identical records are skipped
@@ -223,16 +230,35 @@ class Keybox:
         - options: keep local, replace with incoming, add incoming as new
 
         """
-        # decrypt and parse the input file
-        input_envelope = EnvelopeGPG()
-        data = input_envelope.read(file, fn_passphrase)
-        records, columns = parse_file(data.decode('utf-8'))
+        if file_format in ('keybox', 'keybox_gpg'):
+            # decrypt the input file
+            input_envelope = EnvelopeGPG() if file_format == 'keybox_gpg' else Envelope()
+            data = input_envelope.read(file, fn_passphrase)
+            # parse the input file
+            records, columns = parse_file(data.decode('utf-8'))
 
-        # fake Keybox object for input file
-        class FakeKeybox:
-            pass
-        input_keybox = FakeKeybox()
-        input_keybox.envelope = input_envelope
+            # fake Keybox object for input file
+            class FakeKeybox:
+                pass
+
+            input_keybox = FakeKeybox()
+            input_keybox.envelope = input_envelope
+
+            for i, record in enumerate(records):
+                records[i] = EncryptedRecord(input_keybox, record)
+
+        elif file_format == 'plain':
+            records, columns = parse_file(file.read().decode('utf-8'))
+
+        elif file_format == 'json':
+            records = json.load(file)
+            if len(records):
+                columns = tuple(records[0].keys())
+            else:
+                columns = ()
+
+        else:
+            raise NotImplementedError(f"{file_format} import not implemented")
 
         assert set(columns).issubset(self._columns), \
             'Unexpected column in header: %s' \
@@ -240,9 +266,8 @@ class Keybox:
         n_new = 0
         n_updated = 0
         candidates = [EncryptedRecord(self, record) for record in self._records]
-        for n, encrypted_rec in enumerate(records):
-            new_rec = EncryptedRecord(input_keybox, encrypted_rec)
-            matched_recs, exact = self._match_record(candidates, new_rec, 4)
+        for n, new_rec in enumerate(records):
+            matched_recs, exact = self._match_record(candidates, new_rec)
             if exact:
                 assert len(matched_recs) == 1
                 candidates.remove(matched_recs[0])
@@ -250,7 +275,7 @@ class Keybox:
             if not matched_recs:
                 # new
                 fn_print_new(new_rec)
-                self.add_record(**new_rec.as_dict())
+                self.add_record(**new_rec)
                 self.touch()
                 n_new += 1
                 continue
@@ -263,7 +288,7 @@ class Keybox:
                 n_updated += 1
                 self.touch()
             elif resolution == 'add':
-                self.add_record(**new_rec.as_dict())
+                self.add_record(**new_rec)
                 n_new += 1
                 self.touch()
             else:
@@ -307,7 +332,7 @@ class Keybox:
         if new_width > self._column_widths.get(column, 0):
             self._column_widths[column] = new_width
 
-    def _match_record(self, candidates, other, min_score):
+    def _match_record(self, candidates, other, min_score=IMPORT_MIN_MATCHED_COLS):
         """Look for most similar record to `other`.
 
         :param min_score    Minimal number of matching columns

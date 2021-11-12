@@ -10,9 +10,13 @@ import itertools
 import fcntl
 import sys
 
-from keybox.keybox import Keybox, KeyboxRecord
-from keybox.stringutil import contains
-from keybox.editor import InlineEditor
+from blessed import Terminal
+import pyperclip
+
+from .keybox import Keybox, KeyboxRecord
+from .stringutil import contains
+from .editor import InlineEditor
+from .record import COLUMNS
 
 DATA_DIR = Path('~/.keybox')
 DEFAULT_FILENAME = 'keybox.safe'
@@ -41,6 +45,35 @@ def with_selected_record(func):
 
 
 class BaseUI:
+
+    #################
+    # Other Utility #
+    #################
+
+    def _print(self, *args, **kwargs):
+        """Wraps print function to allow overriding."""
+        print(*args, **kwargs)
+        sys.stdout.flush()
+
+    def _copy(self, text):
+        """Wraps copy-to-clipboard function to allow overriding."""
+        pyperclip.copy(text)
+
+    def _input(self, prompt):
+        """Wraps input function to allow overriding."""
+        return input(prompt)
+
+    def _input_pass(self, prompt):
+        """Wraps getpass function to allow overriding."""
+        return getpass(prompt)
+
+    def _ask_yesno(self, prompt) -> bool:
+        """Ask `prompt` [Y/n], return answer as bool"""
+        ans = self._input(prompt + " [Y/n] ")
+        return len(ans) == 0 or ans.lower()[0] == 'y'
+
+
+class KeyboxUI(BaseUI):
 
     """UI base commands.
 
@@ -266,6 +299,11 @@ class BaseUI:
         """Print password from selected record"""
         self._print(self._selected_record['password'])
 
+    @with_selected_record
+    def cmd_copy(self):
+        """Copy password from selected record"""
+        self._copy(self._selected_record['password'])
+
     @with_write_access
     @with_selected_record
     def cmd_modify(self, column, value=None):
@@ -311,8 +349,6 @@ class BaseUI:
 
     def cmd_import(self, filename='-', file_format='keybox_gpg', quiet=False):
         """Import non-identical records from another keybox"""
-        if file_format != 'keybox_gpg':
-            raise NotImplementedError(file_format + " import not implemented")
 
         class PassphraseCanceled(Exception):
             pass
@@ -324,17 +360,37 @@ class BaseUI:
                 self._print()
                 raise PassphraseCanceled()
 
+        def diff_columns(rec1, rec2):
+            for column in COLUMNS:
+                if rec1.get(column) != rec2.get(column):
+                    yield column
+
+        term = Terminal()
+
+        def highlight(text, condition):
+            return term.bright_yellow(text) if condition else term.yellow(text)
+
+        def format_rec(rec, diff_cols=()):
+            return ', '.join(
+                f'{column}={highlight(repr(rec[column]), column in diff_cols)}'
+                for column in rec.get_columns())
+
         def resolve_cb(local_recs, new_rec):
-            print("Updating:")
+            print(term.bright_blue("Updating:"))
+            all_diff_cols = set()
             for n, rec in enumerate(local_recs):
-                print('[%s] local:   ' % n, repr(rec))
-            print('[*] incoming:', repr(new_rec))
+                diff_cols = set(diff_columns(rec, new_rec))
+                all_diff_cols.update(diff_cols)
+                print(term.bold('[%s] local:   ') % n, format_rec(rec, diff_cols))
+            print(term.bold('[*] incoming:'), format_rec(new_rec, all_diff_cols))
             while True:
                 ans = self._input("Replace local [%s] / Add incoming as new [a] / Keep local [k]: "
                                   % ']['.join(str(n) for n
                                               in range(len(local_recs))))
-                if ans == 'a': return None, 'add'
-                if ans == 'k': return None, 'keep_local'
+                if ans == 'a':
+                    return None, 'add'
+                if ans == 'k':
+                    return None, 'keep_local'
                 try:
                     n = int(ans)
                     if n < 0 or n >= len(local_recs):
@@ -345,11 +401,11 @@ class BaseUI:
 
         def print_new_cb(rec):
             if not quiet:
-                print("Adding:", rec)
+                print(term.bright_green("Adding:      "), format_rec(rec))
 
         def do_import(file):
             n_total, n_new, n_updated = self._keybox.import_file(
-                file, passphrase_cb, resolve_cb, print_new_cb)
+                file, file_format, passphrase_cb, resolve_cb, print_new_cb)
             print("checked %d records (%d new, %d updated, %d identical)"
                   % (n_total, n_new, n_updated, n_total - n_new - n_updated))
 
@@ -389,8 +445,8 @@ class BaseUI:
             return False
         return True
 
-    def _create_new(self):
-        if self._ask_yesno("Create new keybox file?"):
+    def _create_new(self, ask=True):
+        if not ask or self._ask_yesno("Create new keybox file?"):
             passphrase = self._input_pass("Enter new passphrase: ")
             passphrase_check = self._input_pass("Re-enter new passphrase: ")
             if passphrase != passphrase_check:
@@ -461,21 +517,3 @@ class BaseUI:
         if text == '*':
             text = ''
         return selected_columns, text
-
-    def _print(self, *args, **kwargs):
-        """Wrap print function to allow overriding."""
-        print(*args, **kwargs)
-        sys.stdout.flush()
-
-    def _input(self, prompt):
-        """Wrap input function to allow overriding."""
-        return input(prompt)
-
-    def _input_pass(self, prompt):
-        """Wrap getpass function to allow overriding."""
-        return getpass(prompt)
-
-    def _ask_yesno(self, prompt) -> bool:
-        """Ask `prompt` [Y/n], return answer as bool"""
-        ans = self._input(prompt + " [Y/n] ")
-        return len(ans) == 0 or ans.lower()[0] == 'y'

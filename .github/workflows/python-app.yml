@@ -29,19 +29,30 @@ jobs:
         sudo apt-get update
         sudo apt-get install --no-install-recommends -y wamerican
         python -m pip install --upgrade pip
-        pip install flake8 twine wheel
+        pip install flake8 twine wheel tox
         pip install -r requirements.txt -r test-requirements.txt -r docs/requirements.txt
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Build and check package
       run: make check
+
     - name: Build zipapp
       run: make zipapp
+
     - name: Build docs
       run: make -C docs html
+
     - name: Test with pytest
       run: make test
+
+    - name: Test coverage
+      run: make cov
+
+    - name: Check package with tox
+      run: tox
