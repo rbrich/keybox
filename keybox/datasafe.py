@@ -54,7 +54,7 @@ class DataSafeUI(BaseUI):
     def open(self):
         self._print("Opening file %r..." % str(self._filename))
         if not self._filename.exists():
-            print("Not found.")
+            self._print("Not found.")
             return False
         self._filename.rename(self._filename_tmp)
         return True
@@ -64,7 +64,7 @@ class DataSafeUI(BaseUI):
             return
         if unlink:
             self._filename_tmp.unlink()
-            print(f"Removed encrypted file {str(self._filename)!r}")
+            self._print(f"Removed encrypted file {str(self._filename)!r}")
             return
         self._filename_tmp.rename(self._filename)
 

@@ -74,6 +74,11 @@ class SecureMemory:
         return self._data == bytes(other)
 
 
+def lock_file(_fileobj):
+    # not implemented, possibly not needed (TODO: test concurrent processes)
+    pass
+
+
 if __name__ == '__main__':
     def self_test():
         b = b"sensitive data"

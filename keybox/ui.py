@@ -7,12 +7,12 @@ from getpass import getpass
 from functools import wraps
 from collections import Counter
 import itertools
-import fcntl
 import sys
 
 from blessed import Terminal
 import pyperclip
 
+from .backend import lock_file
 from .keybox import Keybox, KeyboxRecord
 from .stringutil import contains
 from .editor import InlineEditor
@@ -468,7 +468,7 @@ class KeyboxUI(BaseUI):
             self._print("Warning: Can't open file for writing: %s" % e)
             return False
         try:
-            fcntl.lockf(self._wfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_file(self._wfile)
             return True
         except OSError:
             self._close_tmp()

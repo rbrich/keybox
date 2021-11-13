@@ -5,6 +5,7 @@ import sys
 import os
 import errno
 import resource
+import fcntl
 
 libc = ctypes.CDLL(find_library("c"), use_errno=True)
 
@@ -85,6 +86,10 @@ class SecureMemory:
 
     def __eq__(self, other):
         return self._data == bytes(other)
+
+
+def lock_file(fileobj):
+    fcntl.lockf(fileobj.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
 
 
 if __name__ == '__main__':
