@@ -1,4 +1,4 @@
-from keybox.memory import SecureMemory
+from keybox.backend import SecureMemory
 
 
 def test_secure_memory():

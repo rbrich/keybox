@@ -1,5 +1,6 @@
 import ctypes
 from ctypes.util import find_library
+from ctypes import c_void_p, c_size_t, c_int
 import sys
 import os
 import errno
@@ -19,7 +20,7 @@ def memory_lock(addr, len):
     limits = resource.getrlimit(resource.RLIMIT_MEMLOCK)
     resource.setrlimit(resource.RLIMIT_MEMLOCK, (limits[1], limits[1]))
     try:
-        rc = libc.mlock(ctypes.c_void_p(addr), len)
+        rc = libc.mlock(c_void_p(addr), c_size_t(len))
     except OSError as e:
         print("Warning: Unable to lock memory.", str(e))
         return
@@ -35,7 +36,7 @@ def memory_lock(addr, len):
 
 def memory_unlock(addr, len):
     try:
-        rc = libc.munlock(ctypes.c_void_p(addr), len)
+        rc = libc.munlock(c_void_p(addr), c_size_t(len))
     except OSError as e:
         print("Warning: Unable to unlock memory.", str(e))
         return
@@ -46,7 +47,7 @@ def memory_unlock(addr, len):
 
 def memory_clear(addr, len):
     try:
-        rc = libc.memset(ctypes.c_void_p(addr), 0, len)
+        rc = libc.memset(c_void_p(addr), c_int(0), c_size_t(len))
     except OSError as e:
         print("Warning: Unable to clear memory.", str(e))
         return
@@ -60,7 +61,7 @@ class SecureMemory:
     """Memlock the memory (do not allow swap).
 
     Zero the memory in deleter. This is a little hacky,
-    it depends on CPython and it's bytes object implementation.
+    it depends on CPython and its bytes object implementation.
 
     """
 

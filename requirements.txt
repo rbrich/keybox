@@ -1,5 +1,8 @@
 setuptools
 Cython
+pytest
+coverage
+pexpect
 pynacl
 argon2-cffi
 blessed

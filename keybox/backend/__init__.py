@@ -14,10 +14,11 @@ __all__ = (
     'crc32',
     # utility
     'randombytes',
+    'SecureMemory',
 )
 
 # ordered by priority, the first one providing a function will be picked
-all_backend_names = ('cryptoref', 'argon2_cffi', 'pynacl', 'standard')
+all_backend_names = ('cryptoref', 'argon2_cffi', 'pynacl', 'os_unix', 'os_windows', 'standard')
 
 symbol_provided_by = {
     'Argon2Params': ('argon2_cffi', 'pynacl'),
@@ -29,6 +30,7 @@ symbol_provided_by = {
     'deflate_decompress': ('standard',),
     'crc32': ('standard',),
     'randombytes': ('pynacl', 'standard'),
+    'SecureMemory': ('os_unix', 'os_windows'),
 }
 
 available_backends = ()
