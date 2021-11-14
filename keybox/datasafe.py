@@ -56,7 +56,7 @@ class DataSafeUI(BaseUI):
         if not self._filename.exists():
             self._print("Not found.")
             return False
-        self._filename.rename(self._filename_tmp)
+        self._filename.replace(self._filename_tmp)
         return True
 
     def close(self, unlink=False):

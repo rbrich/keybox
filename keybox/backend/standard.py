@@ -3,6 +3,8 @@
 import os
 import zlib
 from io import BytesIO
+from contextlib import contextmanager
+from threading import Timer
 
 
 def noop_compress(data: bytes) -> bytes:
@@ -27,4 +29,15 @@ def deflate_decompress(data: bytes, plain_size=-1) -> bytes:
 
 
 crc32 = zlib.crc32
+
 randombytes = os.urandom
+
+
+@contextmanager
+def timeout(secs: float, handler):
+    t = Timer(secs, handler)
+    t.start()
+    try:
+        yield
+    finally:
+        t.cancel()

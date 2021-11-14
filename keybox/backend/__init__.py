@@ -16,6 +16,7 @@ __all__ = (
     'randombytes',
     'SecureMemory',
     'lock_file',
+    'timeout',
 )
 
 # ordered by priority, the first one providing a function will be picked
@@ -33,6 +34,7 @@ symbol_provided_by = {
     'randombytes': ('pynacl', 'standard'),
     'SecureMemory': ('os_unix', 'os_windows'),
     'lock_file': ('os_unix', 'os_windows'),
+    'timeout': ('os_unix', 'standard'),
 }
 
 available_backends = ()

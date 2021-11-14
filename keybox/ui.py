@@ -486,11 +486,15 @@ class KeyboxUI(BaseUI):
     def _write(self):
         # Write records to tmp file
         self._keybox.write(self._wfile)
+        if sys.platform == "win32":
+            self._close_tmp(unlink=False)
         # Then rename it to target name, potentially overwriting old version
-        self._filename_tmp.rename(self._filename)
+        self._filename_tmp.replace(self._filename)
         # Close tmp file, which will also release the lock
         # It's important to do this after rename to avoid race condition
-        self._close_tmp(unlink=False)
+        # (Windows: can't rename the file before closing)
+        if sys.platform != "win32":
+            self._close_tmp(unlink=False)
         self._print(f"Changes saved to file {str(self._filename)!r}.")
 
     #################

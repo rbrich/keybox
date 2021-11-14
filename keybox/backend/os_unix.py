@@ -6,6 +6,8 @@ import os
 import errno
 import resource
 import fcntl
+import signal
+from contextlib import contextmanager
 
 libc = ctypes.CDLL(find_library("c"), use_errno=True)
 
@@ -85,6 +87,19 @@ class SecureMemory:
 
 def lock_file(fileobj):
     fcntl.lockf(fileobj.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+@contextmanager
+def timeout(secs: int, handler):
+    def sigalrm_handler(_signum, _frame):
+        handler()
+    orig_handler = signal.signal(signal.SIGALRM, sigalrm_handler)
+    signal.alarm(int(secs))
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, orig_handler)
 
 
 if __name__ == '__main__':

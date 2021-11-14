@@ -2,6 +2,7 @@
 # (shell-like user interface)
 #
 
+import sys
 import textwrap
 import signal
 from inspect import signature
@@ -11,6 +12,7 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.completion import Completer, WordCompleter, NestedCompleter, Completion
 
 from .ui import KeyboxUI
+from .backend import timeout
 from . import pwgen
 
 SHELL_TIMEOUT_SECS = 3600  # 1 hour
@@ -29,6 +31,9 @@ class BaseInput:
         """Input with completion and history."""
         return self._session.prompt(FormattedText([('bold', prompt)]),
                                     completer=self._completer)
+
+    def cancel(self, exception=TimeoutError):
+        self._session.app.exit(exception=exception, style='class:exiting')
 
 
 class PasswordGenCompleter(Completer):
@@ -130,13 +135,10 @@ class ShellUI(KeyboxUI):
         self._quit = False
         self._write_on_quit = True
 
-        def sighup_handler(signum, frame):
+        def sighup_handler(_signum, _frame):
             self.close()
-        signal.signal(signal.SIGHUP, sighup_handler)
-
-        def sigalrm_handler(signum, frame):
-            raise TimeoutError
-        signal.signal(signal.SIGALRM, sigalrm_handler)
+        if sys.platform != "win32":
+            signal.signal(signal.SIGHUP, sighup_handler)
 
     def start(self, readonly=False):
         """Start the shell. Returns when done."""
@@ -161,9 +163,8 @@ class ShellUI(KeyboxUI):
         """
         session = ShellInput(self._keybox, self._commands)
         while not self._quit:
-            signal.alarm(SHELL_TIMEOUT_SECS)
-            cmdline = session.input("> ")
-            signal.alarm(0)
+            with timeout(SHELL_TIMEOUT_SECS, session.cancel):
+                cmdline = session.input("> ")
             if not cmdline.strip():
                 continue
             command, *args = cmdline.split(None, 1)
