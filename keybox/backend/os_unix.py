@@ -16,6 +16,13 @@ def memory_lock(addr, len):
     Encountering error while locking memory is not considered fatal,
     no exception is raised.
 
+    The memory page is locked until the process terminates.
+    We cannot pair mlock/munlock safely without additional page management.
+    From linux' mlock(2):
+    > Memory locks do not stack, that is, pages which have been locked several times
+    > by calls to mlock() or mlockall() will be unlocked by a single call to munlock()
+    > for the corresponding range.
+
     """
     # Set MEMLOCK soft limit to maximum
     limits = resource.getrlimit(resource.RLIMIT_MEMLOCK)
@@ -33,17 +40,6 @@ def memory_lock(addr, len):
                   "Consider raising MEMLOCK limit (current %d)." % limit)
         else:
             print("Error (mlock):", errno.errorcode[err], os.strerror(err))
-
-
-def memory_unlock(addr, len):
-    try:
-        rc = libc.munlock(c_void_p(addr), c_size_t(len))
-    except OSError as e:
-        print("Warning: Unable to unlock memory.", str(e))
-        return
-    if rc == -1:  # pragma: no cover
-        err = ctypes.get_errno()
-        print("Error (munlock):", errno.errorcode[err], os.strerror(err))
 
 
 def memory_clear(addr, len):
@@ -79,7 +75,6 @@ class SecureMemory:
         # CPython assumption:
         # bytes object has header, followed by data and 1 byte terminator
         memory_clear(addr + (brutto - netto - 1), netto)
-        memory_unlock(addr, brutto)
 
     def __bytes__(self):
         return self._data

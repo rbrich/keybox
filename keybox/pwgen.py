@@ -15,6 +15,7 @@ NUM_DIGITS = 1
 NUM_SPECIAL = 0
 
 # Prefer system wordlist, fallback to cached web download
+# See: https://en.wikipedia.org/wiki/Words_(Unix)
 WORDLIST_SYSTEM_PATH = Path('/usr/share/dict/words')
 WORDLIST_CACHE_PATH = Path('~/.keybox/words').expanduser()
 WORDLIST_WEB_URL = 'https://users.cs.duke.edu/~ola/ap/linuxwords'

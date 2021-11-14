@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import os
 from io import StringIO, BytesIO
 from pathlib import Path
@@ -52,9 +53,9 @@ class TestCrypt(unittest.TestCase):
     def _encrypt_decrypt(self, data, pp):
         envelope = Envelope()
         envelope.set_passphrase(pp)
-        encdata = envelope.encrypt(data)
-        decdata = envelope.decrypt(encdata)
-        self.assertEqual(data, decdata)
+        ciphertext = envelope.encrypt(data)
+        plaintext = envelope.decrypt(ciphertext)
+        self.assertEqual(data, plaintext)
 
     def test_crypt(self):
         self._encrypt_decrypt(b'test', 'abc')
@@ -65,12 +66,12 @@ class TestCrypt(unittest.TestCase):
 
     def test_wrong_passphrase(self):
         data = b'test'
-        env1 = Envelope()
-        env1.set_passphrase('a')
-        encdata = env1.encrypt(data)
-        env2 = Envelope()
-        env2.set_passphrase('b')
-        self.assertRaises(Exception, env2.decrypt, encdata)
+        env = Envelope()
+        env.set_passphrase('a')
+        ciphertext = env.encrypt(data)
+        env = Envelope()
+        env.set_passphrase('b')
+        self.assertRaises(Exception, env.decrypt, ciphertext)
 
 
 class TestRecord(unittest.TestCase):
@@ -148,21 +149,21 @@ class TestKeyboxRecord(unittest.TestCase):
         self.assertNotEqual("sometime", record['mtime'])
 
 
-class TestKeybox(unittest.TestCase):
+class TestKeybox:
 
-    def setUp(self):
-        self._sample = {
-            'site': 'Example',
-            'user': 'johny',
-            'url': 'http://example.com/',
-            'tags': 'web test',
-            'note': 'This is example record.',
-            'password': 'pa$$w0rD',
-        }
-        self._filename = '/tmp/test_keybox.safe'
-        self._passphrase = 'secret'
+    _sample = {
+        'site': 'Example',
+        'user': 'johny',
+        'url': 'http://example.com/',
+        'tags': 'web test',
+        'note': 'This is example record.',
+        'password': 'pa$$w0rD',
+    }
+    _filename = 'test_keybox.safe'
+    _passphrase = 'secret'
 
-    def test_write_read(self):
+    def test_write_read(self, tmp_path):
+        safe_file = tmp_path / self._filename
         # Write
         keybox = Keybox()
         keybox.set_passphrase(self._passphrase)
@@ -171,26 +172,25 @@ class TestKeybox(unittest.TestCase):
             record['site'] += str(i)
         keybox[20]['tags'] = 'email'
         keybox[30]['tags'] = 'test it'
-        with open(self._filename, 'wb') as f:
+        with open(safe_file, 'wb') as f:
             keybox.write(f)
         del keybox
         # Read
         keybox = Keybox()
-        with open(self._filename, 'rb') as f:
+        with open(safe_file, 'rb') as f:
             keybox.read(f, lambda: self._passphrase)
         record = keybox[10]
-        self.assertTrue(record['mtime'])
-        self.assertEqual(record['site'], self._sample['site'] + '10')
+        assert record['mtime']
+        assert record['site'] == self._sample['site'] + '10'
         # Check rest of fields
         for key in set(self._sample.keys()) - {'site'}:
-            self.assertEqual(record[key], self._sample[key])
+            assert record[key] == self._sample[key]
         # Actual password is encrypted
-        self.assertNotEqual(record._record['password'],
-                            self._sample['password'])
+        assert record._record['password'] != self._sample['password']
         # Tags are parsed into sorted list
-        self.assertEqual(keybox.get_tags(), ['email', 'it', 'test', 'web'])
+        assert keybox.get_tags() == ['email', 'it', 'test', 'web']
         # Clean up
-        os.unlink(self._filename)
+        os.unlink(safe_file)
 
     def test_master_password_change(self):
         # Write
@@ -207,12 +207,12 @@ class TestKeybox(unittest.TestCase):
             keybox.read(f, lambda: self._passphrase + '2')
         record = dict(keybox[0])
         del record['mtime']
-        self.assertEqual(record, self._sample)
+        assert record == self._sample
         # Change passphrase
         keybox.set_passphrase(self._passphrase + '3')
         record = dict(keybox[0])
         del record['mtime']
-        self.assertEqual(record, self._sample)
+        assert record == self._sample
         with open(self._filename, 'wb') as f:
             keybox.write(f)
         del keybox
@@ -220,13 +220,14 @@ class TestKeybox(unittest.TestCase):
         keybox = Keybox()
         with open(self._filename, 'rb') as f:
             # FIXME: custom exception for authentication error
-            self.assertRaises(Exception, keybox.read, f, lambda: self._passphrase)
+            with pytest.raises(Exception):
+                keybox.read(f, lambda: self._passphrase)
         # Read with new passphrase
         with open(self._filename, 'rb') as f:
             keybox.read(f, lambda: self._passphrase + '3')
         record = dict(keybox[0])
         del record['mtime']
-        self.assertEqual(record, self._sample)
+        assert record == self._sample
 
 
 class TestExportImport(unittest.TestCase):

@@ -13,6 +13,12 @@ def memory_lock(addr, len):
     Encountering error while locking memory is not considered fatal,
     no exception is raised.
 
+    The memory page is locked until the process terminates.
+    Note that calls to VirtualLock do not stack, so a constructor/destructor
+    pattern in SecureMemory would not work if we called VirtualUnlock.
+    It would unlock the memory even when another instance wanted to keep
+    it locked.
+
     """
     try:
         ok = windll.kernel32.VirtualLock(c_void_p(addr), c_size_t(len))
@@ -22,17 +28,6 @@ def memory_lock(addr, len):
     if not ok:  # pragma: no cover
         err = windll.kernel32.GetLastError()
         print("Error (VirtualLock):", err, err_hint)
-
-
-def memory_unlock(addr, len):
-    try:
-        ok = windll.kernel32.VirtualUnlock(c_void_p(addr), c_size_t(len))
-    except OSError as e:
-        print("Warning: Unable to unlock memory.", str(e))
-        return
-    if not ok:  # pragma: no cover
-        err = windll.kernel32.GetLastError()
-        print("Error (VirtualUnlock):", err, err_hint)
 
 
 def memory_clear(addr, len):
@@ -65,7 +60,6 @@ class SecureMemory:
         # CPython assumption:
         # bytes object has header, followed by data and 1 byte terminator
         memory_clear(addr + (brutto - netto - 1), netto)
-        memory_unlock(addr, brutto)
 
     def __bytes__(self):
         return self._data
