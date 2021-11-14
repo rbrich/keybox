@@ -3,12 +3,13 @@
 #
 
 from pathlib import Path
-from getpass import getpass
 from functools import wraps
 from collections import Counter
 import itertools
 import sys
 
+from prompt_toolkit import prompt as prompt_input
+from prompt_toolkit.formatted_text import FormattedText
 from blessed import Terminal
 import pyperclip
 
@@ -65,7 +66,7 @@ class BaseUI:
 
     def _input_pass(self, prompt):
         """Wraps getpass function to allow overriding."""
-        return getpass(prompt)
+        return prompt_input(FormattedText([('bold', prompt)]), is_password=True)
 
     def _ask_yesno(self, prompt) -> bool:
         """Ask `prompt` [Y/n], return answer as bool"""

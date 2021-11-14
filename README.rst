@@ -35,7 +35,7 @@ Dependencies:
 
 - POSIX OS
 - Python 3.7 or later
-- PyNaCl, blessed, pyperclip
+- PyNaCl, prompt_toolkit, blessed, pyperclip
 
 
 Installation
@@ -63,7 +63,7 @@ Dependencies:
     - required for pwgen
     - Debian: ``apt install wamerican``
 
-* blessed, pyperclip - terminal utility
+* prompt_toolkit, blessed, pyperclip - terminal utility
 
 * `pynacl <https://pynacl.readthedocs.io/en/latest/install/>`_
 

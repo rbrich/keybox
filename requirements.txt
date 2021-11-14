@@ -8,3 +8,4 @@ pynacl
 argon2-cffi
 blessed
 pyperclip
+prompt_toolkit

@@ -174,16 +174,15 @@ class Keybox:
         return self._envelope.check_passphrase(passphrase)
 
     def get_columns(self, start_text=None):
-        start_text = start_text.lower() or ''
-        return [c for c in self._columns if c.startswith(start_text)]
+        if start_text is None or len(self._columns) == 0:
+            return self._columns
+        return [c for c in self._columns if c.startswith(start_text.lower())]
 
     def get_column_width(self, column):
         return self._column_widths[column]
 
-    def get_column_values(self, column, start_text=None):
-        start_text = (start_text or '').lower()
-        return sorted(record[column] for record in self._records
-                      if record[column].startswith(start_text))
+    def get_column_values(self, column):
+        return set(record[column] for record in self._records if record.get(column))
 
     def get_tags(self, start_text=None):
         start_text = (start_text or '').lower()
