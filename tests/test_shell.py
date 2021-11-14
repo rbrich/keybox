@@ -92,8 +92,8 @@ class Wait:
         return "%s(%r)" % (self.__class__.__name__, self._seconds)
 
 
-config_file = '/tmp/test_keybox.conf'
-filename = '/tmp/test_keybox.safe'
+config_filename = 'test_keybox.conf'
+safe_filename = 'test_keybox.safe'
 passphrase = 'secret'
 dummy_filename = Path(__file__).parent / "dummy_keybox.safe"
 dummy_passphrase = "test123"
@@ -101,7 +101,17 @@ expect_password_options = ExpectPasswordOptions()
 
 
 @pytest.fixture()
-def spawn_shell():
+def config_file(tmp_path):
+    return tmp_path / config_filename
+
+
+@pytest.fixture()
+def safe_file(tmp_path):
+    return tmp_path / safe_filename
+
+
+@pytest.fixture()
+def spawn_shell(config_file, safe_file):
     if os.environ.get('COVERAGE'):
         exe = "coverage"
         args = ["run", "--parallel-mode"]
@@ -109,25 +119,11 @@ def spawn_shell():
         exe = sys.executable
         args = []
     p = pexpect.spawn(exe, args + [
-                      "-m", "keybox", "shell", "-c", config_file, "-f", filename,
+                      "-m", "keybox", "shell", "-c", str(config_file), "-f", str(safe_file),
                       '--timeout', '1'],
                       echo=False, timeout=2, encoding='utf8')
     yield p
     p.close(force=True)
-
-
-@pytest.fixture
-def no_keybox_file():
-    assert not os.path.exists(filename)
-    yield
-    os.unlink(filename)
-
-
-@pytest.fixture
-def dummy_keybox_file():
-    shutil.copyfile(dummy_filename, filename)
-    yield
-    os.unlink(filename)
 
 
 def run_script(p, script):
@@ -139,13 +135,13 @@ def run_script(p, script):
     assert not p.isalive()
 
 
-@pytest.mark.usefixtures("no_keybox_file")
-def test_shell(spawn_shell):
+def test_shell(spawn_shell, config_file, safe_file):
+    assert not safe_file.exists()
     temp_pass = 'temporary_password'
     run_script(spawn_shell, [
         # Initialize
-        Expect(f"Loading config {config_file!r}..."),
-        Expect(f"Opening file {filename!r}... Not found."),
+        Expect(f"Loading config {str(config_file)!r}..."),
+        Expect(f"Opening file {str(safe_file)!r}... Not found."),
         Expect("Create new keybox file? [Y/n] "),
         Send("y\n"),
         Expect("Enter new passphrase: "),
@@ -193,7 +189,7 @@ def test_shell(spawn_shell):
         # Write
         Expect("> "),
         Send("w\n"),
-        Expect(f"Changes saved to file {filename!r}."),
+        Expect(f"Changes saved to file {str(safe_file)!r}."),
         # Select
         Expect("> "),
         Send("s\n"),
@@ -230,16 +226,16 @@ def test_shell(spawn_shell):
         Expect("> "),
         SendControl("c"),
         Expect("quit"),
-        Expect(f"Changes saved to file {filename!r}."),
+        Expect(f"Changes saved to file {str(safe_file)!r}."),
     ])
 
 
-@pytest.mark.usefixtures("dummy_keybox_file")
-def test_timeout(spawn_shell):
+def test_timeout(spawn_shell, config_file, safe_file):
+    shutil.copyfile(dummy_filename, safe_file)
     run_script(spawn_shell, [
         # Initialize
-        Expect(f"Loading config {config_file!r}..."),
-        Expect(f"Opening file {filename!r}... "),
+        Expect(f"Loading config {str(config_file)!r}..."),
+        Expect(f"Opening file {str(safe_file)!r}... "),
         Expect("Passphrase: "),
         Send(dummy_passphrase + "\n"),
         # Finish

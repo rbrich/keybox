@@ -291,8 +291,8 @@ class Keybox:
                 self.add_record(**new_rec)
                 n_new += 1
                 self.touch()
-            else:
-                assert resolution == 'keep_local'
+            elif resolution != 'keep_local':
+                raise ValueError(f"unknown resolution: {resolution}")
         return len(records), n_new, n_updated
 
     def touch(self):
