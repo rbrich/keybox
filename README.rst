@@ -69,7 +69,7 @@ Dependencies:
 
 * argon2-cffi - optional, replaces argon2 from PyNaCl when available
 
-* pytest, pexpect - for tests
+* pytest, coverage - for tests
 
 Getting Started
 ---------------

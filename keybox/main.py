@@ -130,7 +130,7 @@ def run_decrypt(file, keep):
     safe_ui.close(unlink=(not keep))
 
 
-def parse_args():
+def parse_args(argv=None):
     """Process command line args."""
     ap = argparse.ArgumentParser(prog="keybox",
                                  description="Keybox manager",
@@ -219,7 +219,7 @@ def parse_args():
                                     "Format is [<column>:]<text>. "
                                     "Default <column> is 'site,url'. ")
 
-    args = ap.parse_args()
+    args = ap.parse_args(args=argv)
 
     if 'func' not in args:
         ap_shell.parse_args(namespace=args)
@@ -227,8 +227,13 @@ def parse_args():
     return args
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    """Main program
+
+    :param argv: Used in tests. Default is sys.argv
+    :return: None
+    """
+    args = parse_args(argv)
     run_func = args.func
     delattr(args, 'func')
     try:

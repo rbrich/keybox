@@ -207,7 +207,7 @@ class KeyboxUI(BaseUI):
         order_by = candidates[0]
         try:
             columns, text = self._parse_filter(filter_expr, ('tags',))
-        except Exception as e:
+        except ValueError as e:
             return self._print(e)
         for record in sorted(self._keybox, key=lambda r: r[order_by]):
             if any(contains(record[column], text) for column in columns):
@@ -229,7 +229,7 @@ class KeyboxUI(BaseUI):
             return
         try:
             columns, text = self._parse_filter(filter_expr, ('site', 'url'))
-        except Exception as e:
+        except ValueError as e:
             return self._print(e)
         filtered_records = [record for record in self._keybox
                             if any(contains(record[column], text)
@@ -517,7 +517,7 @@ class KeyboxUI(BaseUI):
         for column in columns:
             candidates = self._keybox.get_columns(column)
             if len(candidates) != 1:
-                raise Exception("Unknown or ambiguous column name: " + column)
+                raise ValueError("Unknown or ambiguous column name: " + column)
             selected_columns += candidates
         if text == '*':
             text = ''

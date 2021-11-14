@@ -14,8 +14,8 @@ class Expect:
     def __init__(self, s):
         self._s = s
 
-    def expect(self, expected):
-        assert self._s == expected
+    def expect(self, actual):
+        assert self._s == actual
 
     def send(self):
         raise Exception("Expecting output, not input!")
@@ -26,7 +26,7 @@ class Send:
     def __init__(self, s):
         self._s = s
 
-    def expect(self, expected):
+    def expect(self, _):
         raise Exception("Expecting input, not output!")
 
     def send(self):

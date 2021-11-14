@@ -23,8 +23,7 @@ test:
 	python3 setup.py pytest
 
 .coverage: keybox tests .coveragerc
-	env COVERAGE=1 coverage run --parallel-mode setup.py pytest
-	coverage combine
+	coverage run setup.py pytest
 
 cov: .coverage
 	coverage report --show-missing --fail-under=70

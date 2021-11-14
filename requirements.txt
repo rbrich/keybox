@@ -2,7 +2,6 @@ setuptools
 Cython
 pytest
 coverage
-pexpect
 sphinx
 pynacl
 argon2-cffi
