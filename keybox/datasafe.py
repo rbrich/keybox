@@ -30,10 +30,10 @@ class DataSafe:
 class DataSafeUI(BaseUI):
 
     def __init__(self, filename: Path):
-        self._safe = DataSafe()
         self._filename = filename
         self._filename_tmp = self._filename.with_suffix(self._filename.suffix + '.tmp')
         self._wfile = None
+        self._safe = DataSafe()
 
     def __del__(self):
         self.close()

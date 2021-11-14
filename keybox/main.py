@@ -3,7 +3,7 @@ import argparse
 import configparser
 from pathlib import Path
 
-from . import pwgen, shell, ui, datasafe
+from . import pwgen, shell, ui, datasafe, backend
 
 
 class Config:
@@ -231,4 +231,7 @@ def main():
     args = parse_args()
     run_func = args.func
     delattr(args, 'func')
-    run_func(**vars(args))
+    try:
+        run_func(**vars(args))
+    except backend.MissingError as e:
+        print(e)
