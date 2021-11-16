@@ -1,13 +1,15 @@
 from ctypes import windll, cdll, c_void_p, c_size_t, c_int
 import sys
 
+VirtualLock = windll.kernel32.VirtualLock
+memset = cdll.msvcrt.memset
 
 err_hint = \
     "(lookup the error code in " \
     "https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes)"
 
 
-def memory_lock(addr, len):
+def memory_lock(addr, size):
     """Try to lock an address against being swapped.
 
     Encountering error while locking memory is not considered fatal,
@@ -21,7 +23,7 @@ def memory_lock(addr, len):
 
     """
     try:
-        ok = windll.kernel32.VirtualLock(c_void_p(addr), c_size_t(len))
+        ok = VirtualLock(c_void_p(addr), c_size_t(size))
     except OSError as e:
         print("Warning: Unable to lock memory.", str(e))
         return
@@ -30,9 +32,9 @@ def memory_lock(addr, len):
         print("Error (VirtualLock):", err, err_hint)
 
 
-def memory_clear(addr, len):
+def memory_clear(addr, size):
     try:
-        cdll.msvcrt.memset(c_void_p(addr), c_int(0), c_size_t(len))
+        memset(c_void_p(addr), c_int(0), c_size_t(size))
     except OSError as e:
         print("Warning: Unable to clear memory.", str(e))
         return

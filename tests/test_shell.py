@@ -1,6 +1,7 @@
 import shutil
 import time
 from pathlib import Path
+from threading import Event
 
 import pytest
 
@@ -32,6 +33,7 @@ def safe_file(tmp_path):
 def prepare_script(monkeypatch, capfd):
 
     script = []
+    timeouted = Event()
 
     def check_captured():
         captured = capfd.readouterr()
@@ -49,13 +51,16 @@ def prepare_script(monkeypatch, capfd):
     def feed_input(_self, prompt):
         check_captured()
         script.pop(0).expect(prompt)
-        return script.pop(0).send()
+        feed = script.pop(0).send()
+        if timeouted.is_set():
+            raise TimeoutError
+        return feed
+
+    def raise_timeout(*_args, **_kwargs):
+        timeouted.set()
 
     def dummy(*_args, **_kwargs):
         pass
-
-    def raise_timeout(*_args, **_kwargs):
-        raise TimeoutError
 
     monkeypatch.setattr(ShellUI, '_input', feed_input, raising=True)
     monkeypatch.setattr(BaseUI, '_input', feed_input, raising=True)
