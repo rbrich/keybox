@@ -2,210 +2,126 @@
 # (shell-like user interface)
 #
 
-import readline
+import sys
 import textwrap
 import signal
-import sys
 from inspect import signature
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.completion import Completer, WordCompleter, NestedCompleter, Completion
+
 from .ui import KeyboxUI
+from .backend import timeout
 from . import pwgen
 
 SHELL_TIMEOUT_SECS = 3600  # 1 hour
 
 
-def not_implemented(f):
-    """Decorator for unimplemented methods.
+class BaseInput:
 
-    The function is effectively removed (set to None).
-
-    """
-    return
-
-
-class BaseCompleter:
-
-    def __init__(self, history: list = None, delims=' '):
-        self._prompt = ''
-        self._history = history or []
-        self._delims = delims
+    def __init__(self, placeholder=None):
+        self._session = PromptSession(
+            complete_while_typing=True,
+            placeholder=FormattedText([('bold ansiblack', placeholder)]) if placeholder else None
+        )
+        self._completer = None
 
     def input(self, prompt):
         """Input with completion and history."""
-        self._prompt = prompt
-        self._reset()
-        self._load_history()
-        value = input(prompt)
-        self._save_history()
-        return value
+        return self._session.prompt(FormattedText([('bold', prompt)]),
+                                    completer=self._completer)
 
-    def _reset(self):
-        readline.parse_and_bind('TAB: complete')
-        readline.set_completer(self._complete)
-        readline.set_completer_delims(self._delims)
-        readline.set_completion_display_matches_hook(self._display_matches)
-
-    def _complete(self, text, state):
-        return
-
-    @not_implemented
-    def _display_matches(self, substitution, matches, longest_match_length):
-        """Override this for custom matches display"""
-
-    def _load_history(self):
-        """Restore readline history to last state."""
-        readline.clear_history()
-        # noinspection PyTypeChecker
-        for item in self._history:
-            readline.add_history(item)
-
-    def _save_history(self):
-        """Save and clear current readline history."""
-        # noinspection PyArgumentList
-        self._history = [readline.get_history_item(i + 1)
-                         for i in range(readline.get_current_history_length())]
+    def cancel(self, exception=TimeoutError):
+        self._session.app.exit(exception=exception, style='class:exiting')
 
 
-class ShellCompleter(BaseCompleter):
+class PasswordGenCompleter(Completer):
+    def __init__(self):
+        self._passwords = None
 
-    def __init__(self, keybox, filter_commands):
-        BaseCompleter.__init__(self)
-        self._keybox = keybox
-        self._filter_commands = filter_commands
-        self._candidates = []
-
-    def _complete(self, text, state):
-        """Tab completion for readline."""
-        if state == 0:
-            line = readline.get_line_buffer()
-            begin = readline.get_begidx()
-            end = readline.get_endidx()
-            to_complete = line[begin:end]
-            assert to_complete == text
-            completed_parts = line[:begin].split()
-
-            if begin == 0:
-                self._candidates = self._filter_commands(text)
-            else:
-                cmd = completed_parts[0]
-                cmd = self._filter_commands(cmd)[0]
-                func = getattr(self, '_complete_' + cmd, lambda p, t: [])
-                self._candidates = func(completed_parts, text)
-        try:
-            return self._candidates[state]
-        except IndexError:
-            return None
-
-    def _complete_modify(self, completed_parts, text):
-        """Complete cmd_modify args."""
-        if len(completed_parts) == 1:
-            return self._keybox.get_columns(text)
-        elif len(completed_parts) == 2:
-            candidates = self._keybox.get_columns(completed_parts[1])
-            if len(candidates) != 1:
-                return []
-            column = candidates[0]
-            if column == 'password':
-                return [pwgen.generate_passphrase()]
-            return []
-        else:
-            return []
+    def get_completions(self, document, complete_event):
+        if self._passwords is None:
+            self._passwords = [pwgen.generate_passphrase() for _ in range(5)] + \
+                              [pwgen.generate_password() for _ in range(5)]
+        for pw in self._passwords:
+            if pw.startswith(document.text_before_cursor):
+                yield Completion(pw, start_position=-len(document.text_before_cursor))
 
 
-class UserCompleter(BaseCompleter):
+class NestedOptions(dict):
+
+    """A fake dictionary that supports partial keys.
+
+    `get(key)` returns value also for `key` that is not contained in dict, but:
+    * is a prefix of another key
+    * is unique prefix, i.e. only a single key matches
+
+    This is used to persuade NestedCompleter to allow prefix shortcuts.
+
+    """
+
+    def __init__(self, options):
+        dict.__init__(self, {k: None for k in options})
+
+    def get(self, key, default=None):
+        candidates = tuple(k for k in self.keys() if k.startswith(key.lower()))
+        if len(candidates) == 1:
+            return self[candidates[0]]
+        return default
+
+
+class ShellInput(BaseInput):
+
+    def __init__(self, keybox, commands):
+        BaseInput.__init__(self)
+        completions = NestedOptions(commands)
+        completions_modify = NestedOptions(keybox.get_columns())
+        completions_modify['password'] = PasswordGenCompleter()
+        completions['modify'] = NestedCompleter(completions_modify)
+        self._completer = NestedCompleter(completions)
+
+
+class UsernameInput(BaseInput):
 
     def __init__(self, keybox):
-        BaseCompleter.__init__(self)
-        self._keybox = keybox
-        self._candidates = []
-
-    def _complete(self, text, state):
-        if state == 0:
-            self._candidates = self._keybox.get_column_values('user', text)
-        try:
-            return self._candidates[state]
-        except IndexError:
-            return None
+        BaseInput.__init__(self, placeholder='# username / login / e-mail')
+        self._completer = WordCompleter(keybox.get_column_values('user'), sentence=True)
 
 
-class PasswordCompleter(BaseCompleter):
+class PasswordInput(BaseInput):
 
     def __init__(self):
-        BaseCompleter.__init__(self, delims='')
-        self._passwords = []
-        self._candidates = []
-
-    def _complete(self, text, state):
-        if state == 0:
-            if text:
-                # Replace the shortcut with password from generated list
-                if len(text) == 1 and '0' <= text <= '9':
-                    self._candidates = [self._passwords[int(text)]]
-                elif len(text) == 1 and 'a' <= text <= 'j':
-                    self._candidates = [self._passwords[ord(text) - ord('a') + 10]]
-                else:
-                    self._candidates = []
-            else:
-                # Fill password list
-                self._passwords = [pwgen.generate_password() for _ in range(10)] + \
-                                  [pwgen.generate_passphrase() for _ in range(10)]
-                # Display passwords with shortcuts as candidates
-                self._candidates = ["%s: %s" % (n if n < 10 else chr(ord('a') + n - 10), p)
-                                    for n, p in enumerate(self._passwords)]
-        try:
-            return self._candidates[state]
-        except IndexError:
-            return None
-
-    def _display_matches(self, substitution, matches, longest_match_length):
-        print()
-        half = len(matches) // 2
-        for match1, match2 in zip(matches[:half], matches[half:]):
-            print(match1, ' ', match2)
-        print(self._prompt, readline.get_line_buffer(), sep='', end='')
-        sys.stdout.flush()
+        BaseInput.__init__(self, placeholder='# <tab> to generate')
+        self._completer = PasswordGenCompleter()
 
 
-class UrlCompleter(BaseCompleter):
-
-    def __init__(self):
-        BaseCompleter.__init__(self,
-                               delims='', history=['https://', 'http://'])
-
-    def _complete(self, text, state):
-        if not len(text):
-            candidates = ['http://']
-        elif all(c.isalpha() for c in text):
-            candidates = [text + '://']
-        else:
-            candidates = []
-        try:
-            return candidates[state]
-        except IndexError:
-            return None
-
-
-class TagsCompleter(BaseCompleter):
+class SiteInput(BaseInput):
 
     def __init__(self, keybox):
-        BaseCompleter.__init__(self)
-        self._keybox = keybox
-        self._candidates = []
+        BaseInput.__init__(self, placeholder='The Site')
+        self._completer = WordCompleter(keybox.get_column_values('site'), sentence=True)
 
-    def _complete(self, text, state):
-        if state == 0:
-            self._candidates = self._keybox.get_tags(text)
-        try:
-            return self._candidates[state]
-        except IndexError:
-            return None
+
+class UrlInput(BaseInput):
+
+    def __init__(self, keybox):
+        BaseInput.__init__(self, placeholder='https://example.com/')
+        self._completer = WordCompleter(keybox.get_column_values('url'), sentence=True)
+
+
+class TagsInput(BaseInput):
+
+    def __init__(self, keybox):
+        BaseInput.__init__(self, placeholder='tag1 tag2')
+        self._completer = WordCompleter(keybox.get_tags())
 
 
 class ShellUI(KeyboxUI):
 
     """Shell allows user type and execute commands.
 
-    Uses readline for tab-completion and history.
+    Uses prompt_toolkit for tab-completion and history.
 
     The entry point is :meth:`start`.
 
@@ -219,13 +135,10 @@ class ShellUI(KeyboxUI):
         self._quit = False
         self._write_on_quit = True
 
-        def sighup_handler(signum, frame):
+        def sighup_handler(_signum, _frame):
             self.close()
-        signal.signal(signal.SIGHUP, sighup_handler)
-
-        def sigalrm_handler(signum, frame):
-            raise TimeoutError
-        signal.signal(signal.SIGALRM, sigalrm_handler)
+        if sys.platform != "win32":
+            signal.signal(signal.SIGHUP, sighup_handler)
 
     def start(self, readonly=False):
         """Start the shell. Returns when done."""
@@ -235,9 +148,9 @@ class ShellUI(KeyboxUI):
             self.mainloop()
         except (KeyboardInterrupt, EOFError):
             # Ctrl-C, Ctrl-D
-            print("quit")
+            pass
         except TimeoutError:
-            print("quit\nTimeout after %s seconds." % SHELL_TIMEOUT_SECS)
+            print("Timeout after %s seconds." % SHELL_TIMEOUT_SECS)
         finally:
             self.close(write=self._write_on_quit)
 
@@ -248,11 +161,10 @@ class ShellUI(KeyboxUI):
         See `start`.
 
         """
-        completer = ShellCompleter(self._keybox, self._filter_commands)
+        session = ShellInput(self._keybox, self._commands)
         while not self._quit:
-            signal.alarm(SHELL_TIMEOUT_SECS)
-            cmdline = completer.input("> ")
-            signal.alarm(0)
+            with timeout(SHELL_TIMEOUT_SECS, session.cancel):
+                cmdline = session.input("> ")
             if not cmdline.strip():
                 continue
             command, *args = cmdline.split(None, 1)
@@ -320,16 +232,18 @@ class ShellUI(KeyboxUI):
         """Override input function to add some convenience."""
         # Special handling for cmd_add fields
         if prompt.startswith('Password:'):
-            completer = PasswordCompleter()
+            session = PasswordInput()
         elif prompt.startswith('User:'):
-            completer = UserCompleter(self._keybox)
+            session = UsernameInput(self._keybox)
+        elif prompt.startswith('Site:'):
+            session = SiteInput(self._keybox)
         elif prompt.startswith('URL:'):
-            completer = UrlCompleter()
+            session = UrlInput(self._keybox)
         elif prompt.startswith('Tags:'):
-            completer = TagsCompleter(self._keybox)
+            session = TagsInput(self._keybox)
         else:
-            completer = BaseCompleter()
-        return completer.input(prompt)
+            session = BaseInput()
+        return session.input(prompt)
 
     def _print_help(self, command, full=False):
         """Print help text for a `command` as found in docstring.
@@ -344,8 +258,8 @@ class ShellUI(KeyboxUI):
             for p in params)
         docstring = func.__doc__ + '\n'
         docshort, docrest = docstring.split('\n', 1)
-        self._print(command.ljust(8),
-                    params_str.ljust(28),
-                    docshort.strip())
+        print(command.ljust(8),
+              params_str.ljust(28),
+              docshort.strip())
         if full and docrest:
-            self._print('\n', textwrap.dedent(docrest).strip(), sep='')
+            print('\n', textwrap.dedent(docrest).strip(), sep='')

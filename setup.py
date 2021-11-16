@@ -30,6 +30,6 @@ setup(
     },
     ext_modules=cythonize('cryptoref/cryptoref.pyx'),
     setup_requires=['pytest-runner', 'Cython'],
-    install_requires=['pynacl', 'blessed', 'pyperclip'],
-    tests_require=['pytest', 'pexpect', 'argon2-cffi'],
+    install_requires=['pynacl', 'prompt_toolkit', 'blessed', 'pyperclip'],
+    tests_require=['pytest', 'argon2-cffi'],
 )

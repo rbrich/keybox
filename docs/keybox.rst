@@ -25,14 +25,6 @@ keybox.keybox module
     :undoc-members:
     :show-inheritance:
 
-keybox.memory module
----------------------
-
-.. automodule:: keybox.memory
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 keybox.pwgen module
 -------------------
 

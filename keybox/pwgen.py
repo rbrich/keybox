@@ -3,6 +3,8 @@
 #
 
 import string
+import functools
+from pathlib import Path
 from random import SystemRandom
 random = SystemRandom()
 
@@ -12,20 +14,44 @@ NUM_UPPER = 2
 NUM_DIGITS = 1
 NUM_SPECIAL = 0
 
-WORDLIST_PATH = '/usr/share/dict/words'
+# Prefer system wordlist, fallback to cached web download
+# See: https://en.wikipedia.org/wiki/Words_(Unix)
+WORDLIST_SYSTEM_PATH = Path('/usr/share/dict/words')
+WORDLIST_CACHE_PATH = Path('~/.keybox/words').expanduser()
+WORDLIST_WEB_URL = 'https://users.cs.duke.edu/~ola/ap/linuxwords'
 
 
-def load_wordlist() -> list:
-    """Load and return system word list."""
-    words = getattr(load_wordlist, '_words', None)
-    if words:
-        return words
-    with open(WORDLIST_PATH, 'r') as f:
-        lines = f.readlines()
-    # Drop words ending 's
-    words = [ln.strip() for ln in lines if not ln.endswith("'s\n")]
-    load_wordlist._words = words
-    return words
+def filter_wordlist(words) -> tuple:
+    return tuple(w.strip() for w in words if "'" not in w)
+
+
+@functools.lru_cache(maxsize=None)
+def load_wordlist() -> tuple:
+    """Load and return a word list."""
+    # Try system dict/words
+    try:
+        with open(WORDLIST_SYSTEM_PATH, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        # Drop words containing "'"
+        return filter_wordlist(lines)
+    except FileNotFoundError:
+        pass
+    # Try cached downloaded words
+    try:
+        with open(WORDLIST_CACHE_PATH, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        return filter_wordlist(lines)
+    except FileNotFoundError:
+        pass
+    # Try web download
+    import urllib.request
+    with urllib.request.urlopen(WORDLIST_WEB_URL) as f:
+        content = f.read()
+    WORDLIST_CACHE_PATH.parent.mkdir(0o700, exist_ok=True)
+    with open(WORDLIST_CACHE_PATH, 'wb') as f:
+        f.write(content)
+    words = content.decode('utf-8').splitlines()
+    return filter_wordlist(words)
 
 
 def generate_password(length: int = MIN_LENGTH) -> str:
@@ -39,24 +65,25 @@ def generate_passphrase(num_words: int = NUM_WORDS,
                         num_upper: int = NUM_UPPER,
                         num_digits: int = NUM_DIGITS,
                         num_special: int = NUM_SPECIAL) -> str:
-    """Generate random passphrase, based on `num_words` dictionary words.
+    """Generate random passphrase, based on dictionary words.
 
-    The passphrase is peppered by making `num_upper` letters uppercase
-    and by adding `num_digits` digits and `num_special` symbol characters
-    at random position.
+    The passphrase is peppered by making some letters uppercase,
+    by adding some digits and special symbol characters at random positions.
 
-    The generated passphrase will have at least `min_length` characters
-    (random letters are added if the length of chosen words is not enough).
-
-    Returns the passphrase.
+    :param num_words:  Use at least this many random words as basis
+    :param min_length: Add more words to achieve at least this length
+    :param num_upper:  Convert this many letters to uppercase
+    :param num_digits: Add this many digits
+    :param num_special: Add this many special symbols
+    :returns: The passphrase.
 
     """
     # Choose random words and join them
     words = load_wordlist()
     charlist = list(''.join(random.choice(words) for _ in range(num_words)))
-    # Add letters up to min length
+    # Add more words up to min length
     while len(charlist) + num_digits + num_special < min_length:
-        charlist.append(random.choice(string.ascii_lowercase))
+        charlist += list(random.choice(words))
     # Make some chars uppercase
     assert(num_upper <= min_length)
     indices = set()

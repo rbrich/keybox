@@ -7,7 +7,6 @@ import struct
 from io import BytesIO
 
 from .backend import *
-from .memory import SecureMemory
 
 MAGIC = b'[K]\0'  # nul byte marks the file as binary without depending on the content itself
 

@@ -30,33 +30,33 @@ class DataSafe:
 class DataSafeUI(BaseUI):
 
     def __init__(self, filename: Path):
-        self._safe = DataSafe()
         self._filename = filename
         self._filename_tmp = self._filename.with_suffix(self._filename.suffix + '.tmp')
         self._wfile = None
+        self._safe = DataSafe()
 
     def __del__(self):
         self.close()
 
     def create(self):
-        self._print("Creating file %r..." % str(self._filename))
+        print("Creating file %r..." % str(self._filename))
         if self._filename.exists():
             if not self._ask_yesno("Target file exists. Overwrite?"):
                 return False
         passphrase = self._input_pass("Enter new passphrase: ")
         passphrase_check = self._input_pass("Re-enter new passphrase: ")
         if passphrase != passphrase_check:
-            self._print("Not same...")
+            print("Not same...")
             return False
         self._safe.set_passphrase(passphrase)
         return True
 
     def open(self):
-        self._print("Opening file %r..." % str(self._filename))
+        print("Opening file %r..." % str(self._filename))
         if not self._filename.exists():
             print("Not found.")
             return False
-        self._filename.rename(self._filename_tmp)
+        self._filename.replace(self._filename_tmp)
         return True
 
     def close(self, unlink=False):
@@ -78,7 +78,7 @@ class DataSafeUI(BaseUI):
         with self._filename_tmp.open('wb') as f:
             self._safe.write_data(f, data)
         self._filename_tmp.rename(self._filename)
-        self._print(f"Encrypted to file {str(self._filename)!r}.")
+        print(f"Encrypted to file {str(self._filename)!r}.")
 
     def decrypt_file(self, plain_file: Path):
         if plain_file.exists():
@@ -88,5 +88,5 @@ class DataSafeUI(BaseUI):
             data = self._safe.read_data(f, lambda: self._input_pass("Passphrase: "))
         with open(plain_file, 'wb') as f:
             f.write(data)
-        self._print(f"Decrypted to file {str(plain_file)!r}.")
+        print(f"Decrypted to file {str(plain_file)!r}.")
         return True

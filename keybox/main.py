@@ -3,7 +3,7 @@ import argparse
 import configparser
 from pathlib import Path
 
-from . import pwgen, shell, ui, datasafe
+from . import pwgen, shell, ui, datasafe, backend
 
 
 class Config:
@@ -130,7 +130,7 @@ def run_decrypt(file, keep):
     safe_ui.close(unlink=(not keep))
 
 
-def parse_args():
+def parse_args(argv=None):
     """Process command line args."""
     ap = argparse.ArgumentParser(prog="keybox",
                                  description="Keybox manager",
@@ -173,7 +173,7 @@ def parse_args():
         subparser.add_argument('-f', dest='keybox_file',
                                help=f"keybox file (default: {shell.ShellUI.get_default_filename()})")
 
-    ap_shell.add_argument('-r', dest="readonly", action='store_true',
+    ap_shell.add_argument('-r', '--read-only', dest="readonly", action='store_true',
                           help="open keybox in read-only mode")
     ap_shell.add_argument('--timeout', type=int, default=shell.SHELL_TIMEOUT_SECS,
                           help="Save and quit when timeout expires "
@@ -219,7 +219,7 @@ def parse_args():
                                     "Format is [<column>:]<text>. "
                                     "Default <column> is 'site,url'. ")
 
-    args = ap.parse_args()
+    args = ap.parse_args(args=argv)
 
     if 'func' not in args:
         ap_shell.parse_args(namespace=args)
@@ -227,8 +227,16 @@ def parse_args():
     return args
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    """Main program
+
+    :param argv: Used in tests. Default is sys.argv
+    :return: None
+    """
+    args = parse_args(argv)
     run_func = args.func
     delattr(args, 'func')
-    run_func(**vars(args))
+    try:
+        run_func(**vars(args))
+    except backend.MissingError as e:
+        print(e)
