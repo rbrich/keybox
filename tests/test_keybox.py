@@ -6,7 +6,6 @@ from keybox.envelope import Envelope
 from keybox.record import Record, COLUMNS
 from keybox.keybox import Keybox, KeyboxRecord
 from keybox.fileformat import format_file, parse_file
-from keybox import pwgen
 
 dummy_filename = Path(__file__).parent / "dummy_keybox.safe"
 dummy_passphrase = "test123"
@@ -21,29 +20,6 @@ dummy_plain_update = """site	user	url	tags	mtime	note	password
 test	mona	http://test.test	test	2021-11-12 20:27:03	updated	test123
 second	lisa	https://example.com	tag2	2021-11-12 20:28:12	new one	secret
 """
-
-
-class TestPasswordGenerator:
-
-    def test_wordlist(self):
-        words = pwgen.load_wordlist()
-        for word in words:
-            assert isinstance(word, str)
-            assert len(word) > 0
-
-    def test_generate_passphrase(self):
-        pw = pwgen.generate_passphrase(num_upper=1, num_digits=1, num_special=1)
-        assert isinstance(pw, str)
-        assert len(pw) >= pwgen.MIN_LENGTH
-        assert any(c.islower() for c in pw), "At least one lowercase"
-        assert any(c.isupper() for c in pw), "At least one uppercase"
-        assert any(c.isdigit() for c in pw), "At least one digit"
-        assert any(c.isprintable() and not c.isalnum() for c in pw), \
-               "At least one punctuation character."
-        assert not any(c.isspace() for c in pw), "No whitespace"
-        pw = pwgen.generate_password(length=50)
-        assert len(pw) == 50
-        assert all(c.isprintable() for c in pw)
 
 
 class TestCrypt:
@@ -83,11 +59,14 @@ class TestRecord:
         assert record.get_columns() == COLUMNS
 
     def test_custom_columns(self):
-        record = Record(a='1', b='2', columns=['a', 'b', 'c'])
-        assert repr(record) == "Record(a='1', b='2', c='')"
+        # `columns` are standard columns known to this version of program
+        # `d` is non-standard column possibly from future version
+        # `c` is missing, but in standard set - it will get default value ('')
+        record = Record(a='1', b='2', d='4', columns=['a', 'b', 'c'])
+        assert repr(record) == "Record(a='1', b='2', c='', d='4')"
         record['c'] = '3'
-        record['d'] = '4'
-        assert repr(record) == "Record(a='1', b='2', c='3', d='4')"
+        record['e'] = '5'
+        assert repr(record) == "Record(a='1', b='2', c='3', d='4', e='5')"
         assert record['a'] == '1'
         assert record['c'] == '3'
 

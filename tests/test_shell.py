@@ -8,6 +8,7 @@ from inspect import currentframe
 import pytest
 
 from keybox.main import main as keybox_main
+from keybox.ui import BaseUI
 from keybox.shell import ShellUI, BaseInput
 
 
@@ -27,6 +28,9 @@ class Expect:
     def __repr__(self):
         return f"line {self._lineno}: {self.__class__.__name__}({self._expected!r})"
 
+    def __getattr__(self, item):
+        raise AttributeError(f"{self!r}: unknown method '{item}'")
+
     def expect(self, actual):
         if callable(self._expected):
             expected = self._expected(*self._args)
@@ -35,10 +39,25 @@ class Expect:
         if self._regex:
             assert re.fullmatch(expected, actual) is not None
         else:
-            assert actual == expected, repr(self)
+            assert actual[:len(expected)] == expected, repr(self)
+            return actual[len(expected):]
 
-    def send(self):
-        raise Exception("Expecting output, not input!")
+
+class ExpectCopy:
+
+    def __init__(self, expected: str):
+        """Match clipboard (copy command) against `expected`"""
+        self._lineno = currentframe().f_back.f_lineno
+        self._expected = expected
+
+    def __repr__(self):
+        return f"line {self._lineno}: {self.__class__.__name__}({self._expected!r})"
+
+    def __getattr__(self, item):
+        raise AttributeError(f"{self!r}: unknown method '{item}'")
+
+    def expect_copy(self, clipboard):
+        assert clipboard == self._expected, repr(self)
 
 
 class Send:
@@ -49,8 +68,8 @@ class Send:
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self._text)
 
-    def expect(self, output):
-        raise Exception(f"Expecting input, got output: {output!r}")
+    def __getattr__(self, item):
+        raise AttributeError(f"{self!r}: unknown method '{item}'")
 
     def send(self):
         return self._text
@@ -65,8 +84,8 @@ class DelayedSend:
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self._seconds)
 
-    def expect(self, _):
-        raise Exception("Wait: Not expecting output!")
+    def __getattr__(self, item):
+        raise AttributeError(f"{self!r}: unknown method '{item}'")
 
     def send(self):
         time.sleep(self._seconds)
@@ -90,23 +109,23 @@ def safe_file(tmp_path):
     return tmp_path / safe_filename
 
 
-def run_script(monkeypatch, capfd, argv, script):
+@pytest.fixture()
+def prepare_script(monkeypatch, capfd):
+
+    script = []
 
     def check_captured():
         captured = capfd.readouterr()
         assert captured.err == ''
-        if captured.out:
+        out = captured.out
+        while out:
             cmd = script.pop(0)
-            cmd.expect(captured.out)
+            out = cmd.expect(out)
 
-    def expect_print(_self, text, end='\n'):
-        if sys.exc_info()[0] is not None:
-            # Already handling an exception, passthrough to stdout
-            print(text, end=end)
-            return
+    def expect_copy(_self, text):
         check_captured()
         cmd = script.pop(0)
-        cmd.expect(str(text) + end)
+        cmd.expect_copy(str(text))
 
     def feed_input(_self, prompt):
         check_captured()
@@ -119,24 +138,27 @@ def run_script(monkeypatch, capfd, argv, script):
     def raise_timeout(*_args, **_kwargs):
         raise TimeoutError
 
-    monkeypatch.setattr(ShellUI, '_print', expect_print, raising=True)
     monkeypatch.setattr(ShellUI, '_input', feed_input, raising=True)
-    monkeypatch.setattr(ShellUI, '_input_pass', feed_input, raising=True)
+    monkeypatch.setattr(BaseUI, '_input', feed_input, raising=True)
+    monkeypatch.setattr(BaseUI, '_input_pass', feed_input, raising=True)
+    monkeypatch.setattr(BaseUI, '_copy', expect_copy, raising=True)
     monkeypatch.setattr(BaseInput, '__init__', dummy, raising=True)
     monkeypatch.setattr(BaseInput, 'input', feed_input, raising=True)
     monkeypatch.setattr(BaseInput, 'cancel', raise_timeout, raising=True)
 
-    keybox_main(argv)
+    def prepare(*script_items):
+        script.extend(script_items)
+
+    yield prepare
+
     check_captured()
     assert len(script) == 0
 
 
-def test_shell(monkeypatch, capfd, config_file, safe_file):
+def test_shell(prepare_script, config_file, safe_file):
     assert not safe_file.exists()
     temp_pass = 'temporary_password'
-    argv = ["shell", "-c", str(config_file), "-f", str(safe_file),
-            '--timeout', '100']
-    run_script(monkeypatch, capfd, argv, [
+    prepare_script(
         # Initialize
         Expect(f"Loading config {str(config_file)!r}...\n"),
         Expect(f"Opening file {str(safe_file)!r}... "),
@@ -225,14 +247,14 @@ def test_shell(monkeypatch, capfd, config_file, safe_file):
         Expect("> "),
         Send("quit"),
         Expect(f"Changes saved to file {str(safe_file)!r}.\n"),
-    ])
+    )
+    keybox_main(["shell", "-c", str(config_file), "-f", str(safe_file),
+                 '--timeout', '10'])
 
 
-def test_timeout(monkeypatch, capfd, config_file, safe_file):
+def test_timeout(prepare_script, config_file, safe_file):
     shutil.copyfile(dummy_filename, safe_file)
-    argv = ["shell", "-c", str(config_file), "-f", str(safe_file),
-            '--timeout', '1']
-    run_script(monkeypatch, capfd, argv, [
+    prepare_script(
         # Initialize
         Expect(f"Loading config {str(config_file)!r}...\n"),
         Expect(f"Opening file {str(safe_file)!r}... "),
@@ -243,4 +265,62 @@ def test_timeout(monkeypatch, capfd, config_file, safe_file):
         Expect("> "),
         DelayedSend(1.1, "too late"),
         Expect("Timeout after 1 seconds.\n"),
-    ])
+    )
+    keybox_main(["shell", "-c", str(config_file), "-f", str(safe_file),
+                 '--timeout', '1'])
+
+
+def test_readonly(prepare_script, config_file, safe_file):
+    shutil.copyfile(dummy_filename, safe_file)
+    prepare_script(
+        # Initialize
+        Expect(f"Loading config {str(config_file)!r}...\n"),
+        Expect(f"Opening file {str(safe_file)!r}... \n"),
+        Expect("Passphrase: "),
+        Send(dummy_passphrase),
+        # Check read-only mode
+        Expect("Open in read-only mode.\n"),
+        Expect("> "),
+        Send("reset"),
+        Expect("Read-only mode.\n"),
+        Expect("> "),
+        Send("q"),
+    )
+    keybox_main(["shell", "-c", str(config_file), "-f", str(safe_file),
+                 '--read-only', '--timeout', '1'])
+
+
+def test_print(prepare_script, config_file, safe_file):
+    shutil.copyfile(dummy_filename, safe_file)
+    filter_expr = 'test'
+    prepare_script(
+        # Initialize
+        Expect(f"Loading config {str(config_file)!r}...\n"),
+        Expect(f"Opening file {str(safe_file)!r}... \n"),
+        Expect("Passphrase: "),
+        Send(dummy_passphrase),
+        # Check read-only mode
+        Expect("Open in read-only mode.\n"),
+        Expect(f"Searching for '{filter_expr}'...\n"),
+        Expect("test  test  http://test.test  test  2021-11-06 20:23:59  test!  \n"),
+        Expect('test\n'),  # this is the password
+    )
+    keybox_main(["print", filter_expr, "-c", str(config_file), "-f", str(safe_file)])
+
+
+def test_copy(prepare_script, config_file, safe_file):
+    shutil.copyfile(dummy_filename, safe_file)
+    filter_expr = 'test'
+    prepare_script(
+        # Initialize
+        Expect(f"Loading config {str(config_file)!r}...\n"),
+        Expect(f"Opening file {str(safe_file)!r}... \n"),
+        Expect("Passphrase: "),
+        Send(dummy_passphrase),
+        # Check read-only mode
+        Expect("Open in read-only mode.\n"),
+        Expect(f"Searching for '{filter_expr}'...\n"),
+        Expect("test  test  http://test.test  test  2021-11-06 20:23:59  test!  \n"),
+        ExpectCopy('test'),  # this is the password
+    )
+    keybox_main(["copy", filter_expr, "-c", str(config_file), "-f", str(safe_file)])

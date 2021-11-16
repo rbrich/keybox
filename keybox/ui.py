@@ -30,7 +30,7 @@ def with_write_access(func):
         if not self.readonly():
             func(self, *args, **kwargs)
         else:
-            self._print("Read-only mode.")
+            print("Read-only mode.")
     return wrapper
 
 
@@ -41,7 +41,7 @@ def with_selected_record(func):
         if self._selected_record:
             func(self, *args, **kwargs)
         else:
-            self._print("No record selected. See `help select`.")
+            print("No record selected. See `help select`.")
     return wrapper
 
 
@@ -115,12 +115,12 @@ class KeyboxUI(BaseUI):
 
     def open(self, readonly=False):
         self._expand_filename()
-        self._print("Opening file %r... " % str(self._filename), end='')
+        print("Opening file %r... " % str(self._filename), end='')
         if self._filename.exists():
             print()
             ok = self._open_existing()
             if ok and (readonly or not self._open_tmp()):
-                self._print("Open in read-only mode.")
+                print("Open in read-only mode.")
         else:
             print("Not found.")
             if readonly:
@@ -159,12 +159,12 @@ class KeyboxUI(BaseUI):
         """Change master passphrase"""
         passphrase = self._input_pass('Enter current passphrase: ')
         if not self._keybox.check_passphrase(passphrase):
-            self._print('Not accepted.')
+            print('Not accepted.')
             return
         passphrase = self._input_pass('Enter new passphrase: ')
         passphrase_check = self._input_pass('Re-enter new passphrase: ')
         if passphrase != passphrase_check:
-            self._print("Not same...")
+            print("Not same...")
             return
         self._keybox.set_passphrase(passphrase)
 
@@ -203,15 +203,15 @@ class KeyboxUI(BaseUI):
         """
         candidates = self._keybox.get_columns(order_by)
         if len(candidates) != 1:
-            return self._print("Unknown `order_by` column:", order_by)
+            return print("Unknown `order_by` column:", order_by)
         order_by = candidates[0]
         try:
             columns, text = self._parse_filter(filter_expr, ('tags',))
         except ValueError as e:
-            return self._print(e)
+            return print(e)
         for record in sorted(self._keybox, key=lambda r: r[order_by]):
             if any(contains(record[column], text) for column in columns):
-                self._print(record)
+                print(record)
 
     def cmd_select(self, filter_expr=None):
         """Select a record or print currently selected record
@@ -225,31 +225,31 @@ class KeyboxUI(BaseUI):
 
         """
         if filter_expr is None:
-            self._print(self._selected_record or "Nothing selected.")
+            print(self._selected_record or "Nothing selected.")
             return
         try:
             columns, text = self._parse_filter(filter_expr, ('site', 'url'))
         except ValueError as e:
-            return self._print(e)
+            return print(e)
         filtered_records = [record for record in self._keybox
                             if any(contains(record[column], text)
                                    for column in columns)]
         if len(filtered_records) == 0:
-            self._print('Not found.')
+            print('Not found.')
             self._selected_record = None
             return
         if len(filtered_records) == 1:
             self._selected_record = filtered_records[0]
-            self._print(self._selected_record)
+            print(self._selected_record)
             return
         filtered_records.sort(key=lambda r: r['site'])
         for n, record in enumerate(filtered_records, 1):
-            self._print("[%d]" % n, record)
+            print("[%d]" % n, record)
         try:
             num = int(self._input('Select: ')) - 1
             self._selected_record = filtered_records[num]
         except (ValueError, IndexError):
-            self._print("Not found.")
+            print("Not found.")
 
     def cmd_count(self, group_by=None, min_count=2):
         """Print number of unique values in `group_by` column
@@ -262,14 +262,14 @@ class KeyboxUI(BaseUI):
         try:
             min_count = int(min_count)
         except ValueError:
-            return self._print("Invalid value for `min_count`:", min_count)
+            return print("Invalid value for `min_count`:", min_count)
         # Total count
         if not group_by:
-            return self._print(len(self._keybox))
+            return print(len(self._keybox))
         # Prepare counter objects according to `group_by` parameter
         candidates = self._keybox.get_columns(group_by)
         if len(candidates) != 1:
-            return self._print("Unknown group_by column:", group_by)
+            return print("Unknown group_by column:", group_by)
         if 'tag'.startswith(group_by.lower()):
             counter = Counter(itertools.chain.from_iterable(
                 record['tags'].split() for record in self._keybox))
@@ -281,7 +281,7 @@ class KeyboxUI(BaseUI):
                 break
             # Skip empty values
             if key:
-                self._print(key.ljust(32), count, sep='')
+                print(key.ljust(32), count, sep='')
 
     def cmd_check(self):
         """Check consistency of records
@@ -298,7 +298,7 @@ class KeyboxUI(BaseUI):
     @with_selected_record
     def cmd_print(self):
         """Print password from selected record"""
-        self._print(self._selected_record['password'])
+        print(self._selected_record['password'])
 
     @with_selected_record
     def cmd_copy(self):
@@ -316,7 +316,7 @@ class KeyboxUI(BaseUI):
         """
         candidates = self._keybox.get_columns(column)
         if len(candidates) != 1:
-            return self._print('Unknown column:', column)
+            return print('Unknown column:', column)
         column = candidates[0]
         if column == "password" and value is None:
             # Multi-line editor
@@ -334,7 +334,7 @@ class KeyboxUI(BaseUI):
             return
         self._keybox.delete_record(self._selected_record)
         self._selected_record = None
-        self._print("Record deleted.")
+        print("Record deleted.")
 
     def cmd_export(self, filename='-', file_format='plain'):
         """Export all records to a plain-text or JSON file.
@@ -358,7 +358,7 @@ class KeyboxUI(BaseUI):
             try:
                 return self._input_pass("Passphrase: ")
             except (KeyboardInterrupt, EOFError):
-                self._print()
+                print()
                 raise PassphraseCanceled()
 
         def diff_columns(rec1, rec2):
@@ -410,7 +410,7 @@ class KeyboxUI(BaseUI):
             print("checked %d records (%d new, %d updated, %d identical)"
                   % (n_total, n_new, n_updated, n_total - n_new - n_updated))
 
-        self._print("Opening input file %r... " % filename)
+        print("Opening input file %r... " % filename)
         try:
             if filename == '-':
                 do_import(sys.stdin.buffer)
@@ -439,10 +439,10 @@ class KeyboxUI(BaseUI):
                 try:
                     self._keybox.read(f, lambda: self._input_pass("Passphrase: "))
                 except (KeyboardInterrupt, EOFError):  # thrown from _input_pass
-                    self._print()
+                    print()
                     return False
         except IOError as e:
-            self._print(e)
+            print(e)
             return False
         return True
 
@@ -451,7 +451,7 @@ class KeyboxUI(BaseUI):
             passphrase = self._input_pass("Enter new passphrase: ")
             passphrase_check = self._input_pass("Re-enter new passphrase: ")
             if passphrase != passphrase_check:
-                self._print("Not same...")
+                print("Not same...")
                 return False
             self._keybox.set_passphrase(passphrase)
         else:  # answer = no
@@ -466,14 +466,14 @@ class KeyboxUI(BaseUI):
                 dirname.mkdir(0o700, exist_ok=True)
             self._wfile = self._filename_tmp.open('wb')
         except OSError as e:
-            self._print("Warning: Can't open file for writing: %s" % e)
+            print("Warning: Can't open file for writing: %s" % e)
             return False
         try:
             lock_file(self._wfile)
             return True
         except OSError:
             self._close_tmp()
-            self._print("Warning: File locked by another process.")
+            print("Warning: File locked by another process.")
             return False
 
     def _close_tmp(self, unlink=True):
@@ -495,7 +495,7 @@ class KeyboxUI(BaseUI):
         # (Windows: can't rename the file before closing)
         if sys.platform != "win32":
             self._close_tmp(unlink=False)
-        self._print(f"Changes saved to file {str(self._filename)!r}.")
+        print(f"Changes saved to file {str(self._filename)!r}.")
 
     #################
     # Other Utility #

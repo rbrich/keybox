@@ -173,7 +173,7 @@ def parse_args(argv=None):
         subparser.add_argument('-f', dest='keybox_file',
                                help=f"keybox file (default: {shell.ShellUI.get_default_filename()})")
 
-    ap_shell.add_argument('-r', dest="readonly", action='store_true',
+    ap_shell.add_argument('-r', '--read-only', dest="readonly", action='store_true',
                           help="open keybox in read-only mode")
     ap_shell.add_argument('--timeout', type=int, default=shell.SHELL_TIMEOUT_SECS,
                           help="Save and quit when timeout expires "

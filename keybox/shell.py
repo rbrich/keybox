@@ -258,8 +258,8 @@ class ShellUI(KeyboxUI):
             for p in params)
         docstring = func.__doc__ + '\n'
         docshort, docrest = docstring.split('\n', 1)
-        self._print(command.ljust(8),
-                    params_str.ljust(28),
-                    docshort.strip())
+        print(command.ljust(8),
+              params_str.ljust(28),
+              docshort.strip())
         if full and docrest:
-            self._print('\n', textwrap.dedent(docrest).strip(), sep='')
+            print('\n', textwrap.dedent(docrest).strip(), sep='')

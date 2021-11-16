@@ -65,24 +65,25 @@ def generate_passphrase(num_words: int = NUM_WORDS,
                         num_upper: int = NUM_UPPER,
                         num_digits: int = NUM_DIGITS,
                         num_special: int = NUM_SPECIAL) -> str:
-    """Generate random passphrase, based on `num_words` dictionary words.
+    """Generate random passphrase, based on dictionary words.
 
-    The passphrase is peppered by making `num_upper` letters uppercase
-    and by adding `num_digits` digits and `num_special` symbol characters
-    at random position.
+    The passphrase is peppered by making some letters uppercase,
+    by adding some digits and special symbol characters at random positions.
 
-    The generated passphrase will have at least `min_length` characters
-    (random letters are added if the length of chosen words is not enough).
-
-    Returns the passphrase.
+    :param num_words:  Use at least this many random words as basis
+    :param min_length: Add more words to achieve at least this length
+    :param num_upper:  Convert this many letters to uppercase
+    :param num_digits: Add this many digits
+    :param num_special: Add this many special symbols
+    :returns The passphrase.
 
     """
     # Choose random words and join them
     words = load_wordlist()
     charlist = list(''.join(random.choice(words) for _ in range(num_words)))
-    # Add letters up to min length
+    # Add more words up to min length
     while len(charlist) + num_digits + num_special < min_length:
-        charlist.append(random.choice(string.ascii_lowercase))
+        charlist += list(random.choice(words))
     # Make some chars uppercase
     assert(num_upper <= min_length)
     indices = set()
