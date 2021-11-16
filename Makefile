@@ -12,8 +12,8 @@ dist/keybox-$(VERSION).tar.gz:
 
 $(BUILD)/keybox.pyz: keybox
 	rm -rf $(ZIPAPP)
-	mkdir -p $(ZIPAPP)/keybox
-	cp keybox/*.py $(ZIPAPP)/keybox
+	mkdir -p $(ZIPAPP)
+	cp -r keybox $(ZIPAPP)
 	python3 -m zipapp $(ZIPAPP) -m 'keybox.main:main' -p '/usr/bin/env python3' -o $@
 
 cryptoref: cryptoref/cryptoref.pyx

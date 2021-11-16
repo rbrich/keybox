@@ -42,8 +42,10 @@ jobs:
     - name: Build and check package
       run: make check
 
-    - name: Build zipapp
-      run: make zipapp
+    - name: Build and check zipapp
+      run: |
+        make zipapp
+        build/keybox.pyz pwgen
 
     - name: Build docs
       run: make -C docs html
