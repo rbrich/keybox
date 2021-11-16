@@ -75,7 +75,7 @@ def generate_passphrase(num_words: int = NUM_WORDS,
     :param num_upper:  Convert this many letters to uppercase
     :param num_digits: Add this many digits
     :param num_special: Add this many special symbols
-    :returns The passphrase.
+    :returns: The passphrase.
 
     """
     # Choose random words and join them

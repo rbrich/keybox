@@ -334,8 +334,8 @@ class Keybox:
     def _match_record(self, candidates, other, min_score=IMPORT_MIN_MATCHED_COLS):
         """Look for most similar record to `other`.
 
-        :param min_score    Minimal number of matching columns
-        :returns (matching_recs, exact_match)
+        :param min_score: Minimal number of matching columns
+        :returns: (matching_recs, exact_match)
 
         """
         matching = []

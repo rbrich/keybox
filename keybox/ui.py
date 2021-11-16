@@ -51,11 +51,6 @@ class BaseUI:
     # Other Utility #
     #################
 
-    def _print(self, *args, **kwargs):
-        """Wraps print function to allow overriding."""
-        print(*args, **kwargs)
-        sys.stdout.flush()
-
     def _copy(self, text):
         """Wraps copy-to-clipboard function to allow overriding."""
         pyperclip.copy(text)
