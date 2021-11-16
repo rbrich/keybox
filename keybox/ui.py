@@ -459,6 +459,9 @@ class KeyboxUI(BaseUI):
             dirname = self._filename_tmp.parent
             if dirname.name == '.keybox':
                 dirname.mkdir(0o700, exist_ok=True)
+            # Open tmp file for writing. It may exist, if:
+            # * another process has opened the keybox (handled by lock_file below)
+            # * it remained in place after unclean exit of another process (overwrite it silently)
             self._wfile = self._filename_tmp.open('wb')
         except OSError as e:
             print("Warning: Can't open file for writing: %s" % e)
@@ -467,7 +470,7 @@ class KeyboxUI(BaseUI):
             lock_file(self._wfile)
             return True
         except OSError:
-            self._close_tmp()
+            self._close_tmp(unlink=False)
             print("Warning: File locked by another process.")
             return False
 

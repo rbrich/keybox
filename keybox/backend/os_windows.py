@@ -1,5 +1,6 @@
 from ctypes import windll, cdll, c_void_p, c_size_t, c_int
 import sys
+import msvcrt
 
 VirtualLock = windll.kernel32.VirtualLock
 memset = cdll.msvcrt.memset
@@ -70,9 +71,11 @@ class SecureMemory:
         return self._data == bytes(other)
 
 
-def lock_file(_fileobj):
-    # not implemented, possibly not needed (TODO: test concurrent processes)
-    pass
+def lock_file(fileobj):
+    """Try locking the file (first 4096 bytes of it)
+    :raises PermissionError: if locked by another process
+    """
+    msvcrt.locking(fileobj.fileno(), msvcrt.LK_NBLCK, 4096)
 
 
 if __name__ == '__main__':
