@@ -54,6 +54,11 @@ def load_wordlist() -> tuple:
     return filter_wordlist(words)
 
 
+def generate_pin(length: int = MIN_LENGTH) -> str:
+    """Generate random numeric PIN."""
+    return ''.join(random.choice(string.digits) for _ in range(length))
+
+
 def generate_password(length: int = MIN_LENGTH) -> str:
     """Generate random password containing letters, digits and symbols."""
     charlist = string.ascii_letters + string.digits + string.punctuation
@@ -106,4 +111,4 @@ def generate_passphrase(num_words: int = NUM_WORDS,
 
 if __name__ == '__main__':
     for _ in range(10):
-        print(generate_password(), ' ', generate_passphrase())
+        print(generate_pin(), generate_password(), generate_passphrase(), sep=3*' ')

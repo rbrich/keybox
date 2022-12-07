@@ -78,9 +78,10 @@ def run_shell(config_file, keybox_file, readonly, timeout):
 
 def run_pwgen(length, words, upper, digits, special):
     for _ in range(10):
-        print(pwgen.generate_password(length),
+        print(pwgen.generate_pin(length),
+              pwgen.generate_password(length),
               pwgen.generate_passphrase(words, length, upper, digits, special),
-              sep='   ')
+              sep=3*' ')
 
 
 def run_export(config_file, keybox_file, output_file, file_format):
