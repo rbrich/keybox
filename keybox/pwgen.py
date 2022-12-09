@@ -18,7 +18,7 @@ NUM_SPECIAL = 0
 # See: https://en.wikipedia.org/wiki/Words_(Unix)
 WORDLIST_SYSTEM_PATH = Path('/usr/share/dict/words')
 WORDLIST_CACHE_PATH = Path('~/.keybox/words').expanduser()
-WORDLIST_WEB_URL = 'https://users.cs.duke.edu/~ola/ap/linuxwords'
+WORDLIST_WEB_URL = 'https://xci.cz/data/linuxwords'
 
 
 def filter_wordlist(words) -> tuple:

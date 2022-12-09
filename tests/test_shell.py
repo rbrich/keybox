@@ -253,6 +253,6 @@ def test_copy(prepare_script, config_file, safe_file):
 def test_pwgen(prepare_script, config_file, safe_file):
     shutil.copyfile(dummy_filename, safe_file)
     prepare_script(
-        Expect(10 * "(\\S{20})   (\\S{20,100})\n", regex=True),
+        Expect(10 * "(\\d{20})   (\\S{20})   (\\S{20,100})\n", regex=True),
     )
     keybox_main(["pwgen", "-l", "20", "-u", "1", "-d", "1", "-s", "1"])
