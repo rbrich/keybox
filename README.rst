@@ -76,6 +76,15 @@ Dependencies
 
 * **pytest, coverage** - for tests
 
+On **Debian**:
+
+    apt install python3-nacl python3-prompt-toolkit python3-blessed python3-pyperclip wamerican
+
+In **KDE/Wayland**:
+To support safe copy (mark the copied password as secret in clipboard),
+`build wl-clipboard from source <https://github.com/bugaevc/wl-clipboard/blob/master/BUILDING.md>`_
+(until the distributed version contains the ``--sensitive`` option).
+
 Getting Started
 ---------------
 

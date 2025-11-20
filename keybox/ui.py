@@ -7,6 +7,8 @@ from functools import wraps
 from collections import Counter
 import itertools
 import sys
+import os
+import subprocess
 
 from prompt_toolkit import prompt as prompt_input
 from prompt_toolkit.formatted_text import FormattedText
@@ -51,8 +53,21 @@ class BaseUI:
     # Other Utility #
     #################
 
-    def _copy(self, text):
+    def _copy_secret(self, text):
         """Wraps copy-to-clipboard function to allow overriding."""
+        # Try to call wl-copy directly with --sensitive parameter,
+        # if that fails, fall back to pyperclip
+        if os.environ.get("WAYLAND_DISPLAY"):
+            try:
+                p = subprocess.Popen(["wl-copy", "--sensitive"],
+                                     stdin=subprocess.PIPE,
+                                     stderr=subprocess.DEVNULL,
+                                     close_fds=True)
+                p.communicate(input=text.encode('utf-8'))
+                if p.returncode == 0:  # Otherwise failed, probably --sensitive not supported
+                    return
+            except FileNotFoundError:
+                pass  # wl-copy not found
         pyperclip.copy(text)
 
     def _input(self, prompt):
@@ -298,7 +313,7 @@ class KeyboxUI(BaseUI):
     @with_selected_record
     def cmd_copy(self):
         """Copy password from selected record"""
-        self._copy(self._selected_record['password'])
+        self._copy_secret(self._selected_record['password'])
 
     @with_write_access
     @with_selected_record
