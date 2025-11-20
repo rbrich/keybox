@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.7', '3.9', '3.10' ]
+        python-version: [ '3.9.25', '3.10.19', '3.11.14', '3.12.12', '3.13.9', '3.14.0' ]
     name: Python ${{ matrix.python-version }}
 
     steps:
@@ -29,7 +29,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install --no-install-recommends -y wamerican
         python -m pip install --upgrade pip
-        pip install flake8 twine wheel tox
+        pip install flake8 twine wheel tox build
         pip install -r requirements.txt
 
     - name: Lint with flake8
