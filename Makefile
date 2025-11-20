@@ -8,7 +8,7 @@ build: dist/keybox-$(VERSION).tar.gz
 zipapp: $(BUILD)/keybox.pyz
 
 dist/keybox-$(VERSION).tar.gz:
-	python3 setup.py sdist bdist_wheel
+	python3 -m build
 
 $(BUILD)/keybox.pyz: keybox
 	rm -rf $(ZIPAPP)
@@ -20,16 +20,16 @@ cryptoref: cryptoref/cryptoref.pyx
 	python3 setup.py build_ext --inplace
 
 test:
-	python3 setup.py pytest
+	python3 -m pytest
 
 .coverage: keybox tests .coveragerc
-	coverage run setup.py pytest
+	python3 -m coverage run -m pytest
 
 cov: .coverage
-	coverage report --show-missing --fail-under=70
+	python3 -m coverage report --show-missing --fail-under=70
 
 htmlcov: .coverage
-	coverage html --show-contexts
+	python3 -m coverage html --show-contexts
 	open htmlcov/index.html
 
 check: build

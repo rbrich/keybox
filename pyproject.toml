@@ -1,0 +1,28 @@
+[project]
+name = "keybox"
+description = "Simple password manager. Stores secrets in encrypted tab-delimited table."
+readme = "README.rst"
+authors = [{name="Radek Brich", email="radek.brich@devl.cz"}]
+license = "MIT"
+license-files = ["LICENSE"]
+urls = {github="https://github.com/rbrich/keybox"}
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Utilities",
+    ]
+
+dependencies = ["pynacl", "prompt_toolkit", "blessed", "pyperclip"]
+optional-dependencies = {tester=["pytest", "argon2-cffi"]}
+
+dynamic = ["version"]
+
+[project.scripts]
+keybox = "keybox.main:main"
+
+[build-system]
+requires = ["setuptools", "wheel", "cython"]
+build-backend = "setuptools.build_meta"

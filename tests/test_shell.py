@@ -65,7 +65,7 @@ def prepare_script(monkeypatch, capfd):
     monkeypatch.setattr(ShellUI, '_input', feed_input, raising=True)
     monkeypatch.setattr(BaseUI, '_input', feed_input, raising=True)
     monkeypatch.setattr(BaseUI, '_input_pass', feed_input, raising=True)
-    monkeypatch.setattr(BaseUI, '_copy', expect_copy, raising=True)
+    monkeypatch.setattr(BaseUI, '_copy_secret', expect_copy, raising=True)
     monkeypatch.setattr(BaseInput, '__init__', dummy, raising=True)
     monkeypatch.setattr(BaseInput, 'input', feed_input, raising=True)
     monkeypatch.setattr(BaseInput, 'cancel', raise_timeout, raising=True)

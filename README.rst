@@ -50,9 +50,11 @@ That's it. PIP should pull in the required dependencies.
 From source / Git repo
 ``````````````````````
 
-Alternatively, install from source::
+Alternatively, install from source using ``build`` tool::
 
-    python3 setup.py install
+    # pip3 install --upgrade build
+    python3 -m build
+
 
 The package can also run without installation, directly from source tree root::
 
